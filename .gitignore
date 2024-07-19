@@ -1,0 +1,96 @@
+# Python
+*.py[cod]
+*.pyo
+__pycache__/
+*.so
+
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.env
+
+# Virtualenv
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# PyCharm
+.idea/
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# MyPy
+.mypy_cache/
+
+# PEP 8 compliance check
+.pep8speaks/
+
+# Testing
+.pytest_cache/
+.testmondata
+unit_tests.log
+
+# Environments
+env/
+.venv/
+
+# Jupyter Notebook
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+
+# Sentry config
+.sentryclirc
+
+# Flask specific
+instance/
+.webassets-cache
+
+# Backup files
+*.bak
+
+# static and media files
+/staticfiles/
+/mediafiles/
+
+# Database
+*.sqlite3
+
+# Security
+.env
