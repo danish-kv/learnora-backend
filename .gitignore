@@ -94,3 +94,5 @@ instance/
 
 # Security
 .env
+
+/media/
