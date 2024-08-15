@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Tutor, Education, Experience, Skill
+from users.api.user_serializers import UserSerializers
+from users.models import CustomUser
 
 
 from datetime import datetime
@@ -29,15 +31,16 @@ class SkillSerializer(serializers.ModelSerializer):
 
 
 
-import json
 class TutorSerializer(serializers.ModelSerializer):
     education = serializers.ListField(child=serializers.JSONField(), required=False, write_only=True)
     experiences = serializers.ListField(child=serializers.JSONField(), required=False, write_only=True)
     skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
+
+    user = UserSerializers() 
     
     class Meta:
         model = Tutor
-        fields = [ 'user', 'cv', 'display_name', 'headline', 'education', 'experiences', 'skills']
+        fields = ['id', 'user', 'cv', 'display_name', 'headline', 'status',  'education', 'experiences', 'skills', ]
         
     
     def create(self, validated_data):
@@ -75,11 +78,13 @@ class TutorSerializer(serializers.ModelSerializer):
                     end_date=parse_date(exp.get('endDate', ''))
                 )
 
-        for skill in skills_data:
-            Skill.objects.create(
-                tutor=tutor,
-                skill_name=skill
-            )
+        for one_skill in skills_data:
+            for skill in one_skill:
+                print('skillllllllllll ========', skill)
+                Skill.objects.create(
+                    tutor=tutor,
+                    skill_name=skill
+                )
 
         tutor.refresh_from_db()
         return tutor

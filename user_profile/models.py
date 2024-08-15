@@ -1,18 +1,21 @@
 from django.db import models
 from users.models import CustomUser
 
+
 # Create your models here.
 
 
 class Tutor(models.Model):
-    VERIFIED = 'verified'
-    PENDING = 'pending'
-    DECLINED = 'declined'
+    VERIFIED = 'Verified'
+    REQUESTED = 'Requested'
+    PENDING = 'Pending'
+    REJECTED = 'Rejected'
 
     STATUS_CHOICES = [
-        (VERIFIED, 'Verified'),
-        (PENDING, 'Pending'),
-        (DECLINED, 'Declined'),
+        (VERIFIED, 'verified'),
+        (REQUESTED, 'requested'),
+        (PENDING, 'pending'),
+        (REJECTED, 'rejected'),
     ]
 
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='tutor_profile', null=True)
@@ -20,6 +23,7 @@ class Tutor(models.Model):
     display_name = models.CharField(max_length=100, null=True, blank=True)
     headline = models.CharField(max_length=100, null=True, blank=True)
     status = models.CharField(max_length=10,choices=STATUS_CHOICES, default=PENDING)
+    
     def __str__(self):
         return self.display_name  or "Tutor"  
     

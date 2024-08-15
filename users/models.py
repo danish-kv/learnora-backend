@@ -44,7 +44,7 @@ class CustomUser(AbstractUser):
     phone = models.CharField(max_length=13,  blank=True)
     otp = models.CharField(max_length=10, null=True, blank=True)
     dob = models.DateField(null=True, blank=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='student')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='admin')
     is_verified = models.BooleanField(default=False)
     auth_provider=models.CharField(max_length=50, default='email')
 

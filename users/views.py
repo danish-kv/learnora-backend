@@ -3,23 +3,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
-from .api.serializers import UserSerializers, CustomTokenObtainPairSerializer, GoogleSignInSerializer, UserProfileSerializers
+from .api.user_serializers import UserSerializers, CustomTokenObtainPairSerializer, UserStatusSerializer
+from .api.google_serializer import GoogleSignInSerializer
 from .signal import generate_otp, send_otp_email
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .utils import register_social_user
-
-
- 
-
-# class ProfileImageView(APIView):
-#     def patch(self, request):
-#         data = request.data
-#         print('requested ',data)
-#         s = UserProfileSerializers(data=data)
-
-#         if s.is_valid():
-#             return Response(s.data, status=status.HTTP_201_CREATED)
-#         return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+from django.core.validators import EmailValidator
+from .permissions import IsAdmin
 
 
 
@@ -43,8 +33,6 @@ class RegisterView(APIView):
         else:
             print('Errors:', user_serializer.errors)
             return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 
 
 
@@ -177,3 +165,11 @@ class GoogleSignInView(generics.GenericAPIView):
         
         return Response(result, status=status.HTTP_200_OK)
     
+
+
+
+class UserStatusUpdate(generics.UpdateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserStatusSerializer
+    permission_classes = [IsAdmin]
+    lookup_field = 'pk'

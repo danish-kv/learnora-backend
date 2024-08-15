@@ -35,14 +35,14 @@ def generate_and_send_otp(sender,instance, created, **kwargs):
         send_otp_email(instance.email, otp)
 
 
-# @receiver(post_save, sender = CustomUser)
-# def create_or_update_user_profile(sender, instance, created, **kwargs):
-#     if created:
-#         if instance.role == 'tutor':
-#             Tutor.objects.create(user=instance)
-#         # else:
-#         #     if hasattr(instance, 'tutor_profile'):
-#         #         instance.tutor_profile.save()
+@receiver(post_save, sender = CustomUser)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        if instance.role == 'tutor':
+            Tutor.objects.create(user=instance)
+        # else:
+        #     if hasattr(instance, 'tutor_profile'):
+        #         instance.tutor_profile.save()
 
 
 

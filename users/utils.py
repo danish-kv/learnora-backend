@@ -4,7 +4,7 @@ from .models import CustomUser
 from django.contrib.auth import authenticate
 from django.conf import settings
 from rest_framework.exceptions import AuthenticationFailed
-from .api.serializers import CustomTokenObtainPairSerializer
+from .api.user_serializers import CustomTokenObtainPairSerializer
 
 
 class Google():
