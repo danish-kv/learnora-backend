@@ -9,7 +9,7 @@ from .signal import generate_otp, send_otp_email
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .utils import register_social_user
 from django.core.validators import EmailValidator
-from .permissions import IsAdmin
+from base.custom_permissions import IsAdmin
 
 
 

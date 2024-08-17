@@ -12,7 +12,8 @@ from django.core.exceptions import ValidationError
 import re
 from datetime import datetime
 from .models import Tutor
-from users.permissions import IsAdmin, IsStudent, IsTutor, IsTutorOrAdmin
+from base.custom_permissions import IsAdmin, IsStudent, IsTutor, IsTutorOrAdmin
+from django.db import transaction
 # Create your views here.
 
 
@@ -153,11 +154,12 @@ class TutorProfile(APIView):
         if tutor_serializer.is_valid():
 
             try:
-                tutor = tutor_serializer.save()
-                print('created ',tutor)
-                print(tutor_serializer.data)
+                with transaction.atomic():
+                    tutor = tutor_serializer.save()
+                    print('created ',tutor)
+                    print(tutor_serializer.data)
 
-                return Response(tutor_serializer.data, status=status.HTTP_201_CREATED)
+                    return Response(tutor_serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
                 print('Exeption', e)
                 return Response({'error' : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
