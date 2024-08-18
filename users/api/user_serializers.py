@@ -27,17 +27,14 @@ class UserSerializers(ModelSerializer):
         if CustomUser.objects.filter(email=validated_data['email']).exists():
             raise ValidationError({'email': 'A user with this email already exists'})
 
-        password = validated_data.pop('password', None)
-        role = validated_data.pop('role', None)        
+        password = validated_data.pop('password', None)  
         
         user = CustomUser.objects.create_user(**validated_data)
         if password:
             user.set_password(password)
-        if role:
-            user.role = role
         user.save()
 
-        print('role', role)
+        print('role', user.role)
         print('pass', password)
 
 

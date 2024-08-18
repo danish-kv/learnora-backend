@@ -22,6 +22,7 @@ class CourseViewSet(ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+    lookup_field = 'slug'
 
     def create(self, request, *args, **kwargs):
         modules_data = json.loads(request.data.get('modules', '[]'))

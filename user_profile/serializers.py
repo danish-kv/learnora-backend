@@ -36,11 +36,11 @@ class TutorSerializer(serializers.ModelSerializer):
     experiences = serializers.ListField(child=serializers.JSONField(), required=False, write_only=True)
     skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
 
-    user = UserSerializers() 
+    user = UserSerializers(read_only=True) 
     
     class Meta:
         model = Tutor
-        fields = ['id', 'user', 'cv', 'display_name', 'headline', 'status',  'education', 'experiences', 'skills', ]
+        fields = ['id', 'user', 'cv', 'display_name', 'headline', 'status',  'education', 'experiences', 'skills' ]
         
     
     def create(self, validated_data):

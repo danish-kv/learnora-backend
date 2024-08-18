@@ -21,14 +21,14 @@ class Google():
             return "token is invalid or has expired"
 
 
-def login_social_user(email, password):
-    print(email, password)
+def login_social_user(email, password, role):
+    print(email, password, role)
     user=authenticate(email=email, password=password)
     print(user,'already data found')
     if not user:
         raise AuthenticationFailed('Invalid credentials.')
 
-    token_serializer = CustomTokenObtainPairSerializer(data={'email': email, 'password': password})
+    token_serializer = CustomTokenObtainPairSerializer(data={'email': email, 'password': password, 'role' : role})
 
     print('toke serializers',token_serializer)
     token_data = token_serializer.get_token(user)
@@ -63,7 +63,7 @@ def register_social_user(provider, email,username, first_name, last_name, role):
         
         if provider == user.auth_provider:
             print('1111111')
-            result = login_social_user(email,settings.SOCIAL_AUTH_PASSWORD)   
+            result = login_social_user(email,settings.SOCIAL_AUTH_PASSWORD, role)   
             return result
         else: raise AuthenticationFailed(
             detail = f'please continue your login with {user.auth_provider}'
@@ -76,16 +76,16 @@ def register_social_user(provider, email,username, first_name, last_name, role):
                 username=username,
                 first_name=first_name,
                 last_name=last_name,
-                password=settings.SOCIAL_AUTH_PASSWORD  
+                password=settings.SOCIAL_AUTH_PASSWORD,
+                auth_provider=provider,
+                email_verified=True,
+                role=role,
             )
             new_user.set_password(settings.SOCIAL_AUTH_PASSWORD)
-            new_user.auth_provider=provider
-            new_user.email_verified=True
-            new_user.role = role 
             new_user.save()
             print("user created in using Google",new_user)
 
-            result = login_social_user(email=new_user.email, password=settings.SOCIAL_AUTH_PASSWORD)
+            result = login_social_user(email=new_user.email, password=settings.SOCIAL_AUTH_PASSWORD, role = role)
             return result
         
 
