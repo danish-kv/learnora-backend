@@ -35,12 +35,12 @@ class TutorSerializer(serializers.ModelSerializer):
     education = serializers.ListField(child=serializers.JSONField(), required=False, write_only=True)
     experiences = serializers.ListField(child=serializers.JSONField(), required=False, write_only=True)
     skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
-
+    userId = serializers.CharField(write_only=True)
     user = UserSerializers(read_only=True) 
     
     class Meta:
         model = Tutor
-        fields = ['id', 'user', 'cv', 'display_name', 'headline', 'status',  'education', 'experiences', 'skills' ]
+        fields = ['id', 'user', 'userId', 'cv', 'display_name', 'headline', 'status',  'education', 'experiences', 'skills' ]
         
     
     def create(self, validated_data):
@@ -49,6 +49,8 @@ class TutorSerializer(serializers.ModelSerializer):
         education_data = validated_data.pop('education', [])
         experiences_data = validated_data.pop('experiences', [])
         skills_data = validated_data.pop('skills', [])
+        user = validated_data.get('userId', None)
+        print('check check user', user)
 
         print('education == ',education_data)
         print('experience == ',experiences_data)
@@ -56,8 +58,14 @@ class TutorSerializer(serializers.ModelSerializer):
 
         print('after popping validating data', validated_data)
 
-        tutor = Tutor.objects.create(**validated_data)
+        tutor = Tutor.objects.get(user=user)
+        tutor.cv = validated_data.get('cv', tutor.cv)
+        tutor.display_name = validated_data.get('display_name', tutor.display_name)
+        tutor.headline = validated_data.get('headline', tutor.headline)
+        tutor.status = Tutor.REQUESTED
+        tutor.save()
         print('tutor id',tutor)
+
 
         for edu_list in education_data:
             for edu in edu_list:
@@ -78,13 +86,16 @@ class TutorSerializer(serializers.ModelSerializer):
                     end_date=parse_date(exp.get('endDate', ''))
                 )
 
-        for one_skill in skills_data:
-            for skill in one_skill:
-                print('skillllllllllll ========', skill)
-                Skill.objects.create(
-                    tutor=tutor,
-                    skill_name=skill
+        for skill in skills_data:
+            print('skillllllllllll ========', skill)
+            Skill.objects.create(
+                tutor=tutor,
+                skill_name=skill
                 )
+            
+        
+        tutor.status = Tutor.REQUESTED
+        tutor.save()
 
         tutor.refresh_from_db()
         return tutor

@@ -37,8 +37,7 @@ def generate_and_send_otp(sender,instance, created, **kwargs):
 
 @receiver(post_save, sender=CustomUser)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
-    print('Signal triggered')  # Log to see if the signal is firing
-    print(instance)
+    print('Signal triggered')  
     if created and instance.role == 'tutor':
         print(f'User created with role: {instance.role}')
         print('Creating Tutor profile...')

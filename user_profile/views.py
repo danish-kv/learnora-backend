@@ -14,11 +14,16 @@ from datetime import datetime
 from .models import Tutor
 from base.custom_permissions import IsAdmin, IsStudent, IsTutor, IsTutorOrAdmin
 from django.db import transaction
+from django.core.mail import send_mail
+from django.conf import settings
+
 # Create your views here.
 
 
+
+
 class TutorProfile(APIView):
-    permission_classes = [IsTutorOrAdmin]
+    # permission_classes = [IsTutor or IsAdmin]
 
     def post(self, request):
         
@@ -132,8 +137,8 @@ class TutorProfile(APIView):
 
             except CustomUser.DoesNotExist:
                 return Response(data={'error' : 'User not Found'}, status=status.HTTP_404_NOT_FOUND)
-            print(user.id)
-            data['user'] = user.id
+            print('user id ', user.id)
+            data['userId'] = user.id
 
             if data['first_name']:
                 user.first_name = data['first_name']
@@ -148,6 +153,7 @@ class TutorProfile(APIView):
             if data['profile']:
                 user.profile = data['profile']
             user.save()
+            print('data passing into serializer',data)
             
         tutor_serializer = TutorSerializer(data=data)
 
@@ -167,14 +173,13 @@ class TutorProfile(APIView):
         else:
             print('Errors', tutor_serializer.errors)
             return Response(tutor_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
 
 
     def get(self, request):
         data = Tutor.objects.all().select_related('user')
         serializer = TutorSerializer(data, many=True)
             
-        print(serializer.data)
+        print('get data of serializer ===',serializer.data)
         return Response(data=serializer.data, status=status.HTTP_200_OK)
     
 
@@ -184,8 +189,34 @@ class TutorDetails(generics.RetrieveUpdateAPIView):
     serializer_class = TutorSerializer
     permission_classes = [IsAdmin]
 
+    def update(self, request, *args, **kwargs):
+        
+        instance = self.get_object()
+
+        old_status = instance.status
+
+        response = super().update(request, *args, **kwargs)
+
+        new_status = request.data.get('status')
+        print(old_status,new_status,  )
+
+        if old_status != new_status:
+            self.send_change_status_email(instance, new_status)
+        return response
 
 
-
-
-
+    def send_change_status_email(self, tutor, new_status):
+        print(tutor, new_status)
+        subject = 'Update on Your Application Status'
+        if new_status == 'Verified':
+            message = 'Congratulations! Your application has been accepted'
+        elif new_status == 'Rejected':
+            message = "We're sorry to inform you that your application has been rejected"
+        
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [tutor.user.email],  # Assuming the tutor model has a user with an email
+            fail_silently=False,
+        )
