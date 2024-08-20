@@ -113,8 +113,6 @@ class TutorProfile(APIView):
         # except json.JSONDecodeError:
         #     return Response({'error' : 'Invalid JSON Format'}, status=status.HTTP_400_BAD_REQUEST)
 
-        print('errors ===' , error)
-
         if error:
             return Response(data={'error' : error}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -128,16 +126,14 @@ class TutorProfile(APIView):
         except json.JSONDecodeError as e:
             return Response({'error': f'Invalid JSON: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        print('after tutor profile',data)
 
         if 'email' in data:
-            print(data['email'])
             try:
                 user = CustomUser.objects.get(email=data['email'])
 
             except CustomUser.DoesNotExist:
                 return Response(data={'error' : 'User not Found'}, status=status.HTTP_404_NOT_FOUND)
-            print('user id ', user.id)
+            
             data['userId'] = user.id
 
             if data['first_name']:
@@ -153,7 +149,6 @@ class TutorProfile(APIView):
             if data['profile']:
                 user.profile = data['profile']
             user.save()
-            print('data passing into serializer',data)
             
         tutor_serializer = TutorSerializer(data=data)
 
@@ -162,24 +157,19 @@ class TutorProfile(APIView):
             try:
                 with transaction.atomic():
                     tutor = tutor_serializer.save()
-                    print('created ',tutor)
-                    print(tutor_serializer.data)
 
                     return Response(tutor_serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
-                print('Exeption', e)
                 return Response({'error' : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
         else:
-            print('Errors', tutor_serializer.errors)
             return Response(tutor_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
     def get(self, request):
         data = Tutor.objects.all().select_related('user')
         serializer = TutorSerializer(data, many=True)
-            
-        print('get data of serializer ===',serializer.data)
+        
         return Response(data=serializer.data, status=status.HTTP_200_OK)
     
 
@@ -217,6 +207,6 @@ class TutorDetails(generics.RetrieveUpdateAPIView):
             subject,
             message,
             settings.DEFAULT_FROM_EMAIL,
-            [tutor.user.email],  # Assuming the tutor model has a user with an email
+            [tutor.user.email],  
             fail_silently=False,
         )

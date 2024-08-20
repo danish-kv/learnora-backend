@@ -13,9 +13,7 @@ class GoogleSignInSerializer(serializers.Serializer):
         access_token = attrs.get('access_token')
         role = attrs.get('role')
 
-        print('Validating access token...')
         google_user_data = Google.validate(access_token)
-        print('Google user data:', google_user_data)
 
         if not google_user_data:
             raise serializers.ValidationError("This token is invalid or has expired")
@@ -24,11 +22,9 @@ class GoogleSignInSerializer(serializers.Serializer):
             userId=google_user_data['sub']
             
         except Exception as e:
-            print(e, 'token is invalid or has expired')
             raise serializers.ValidationError("this token is invalid or has expired")
         
         if google_user_data['aud'] != settings.GOOGLE_CLIENT_ID:
-            print('worrrrrrrrrr')
             raise AuthenticationFailed(detail='could not verify user')
         
 

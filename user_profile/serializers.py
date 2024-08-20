@@ -10,7 +10,7 @@ def parse_date(date_str):
     try:
         return datetime.strptime(date_str, '%Y-%m-%d').date()
     except ValueError:
-        return None  # or handle the error as needed
+        return None  
 
 
 class EducationSerializer(serializers.ModelSerializer):
@@ -44,19 +44,11 @@ class TutorSerializer(serializers.ModelSerializer):
         
     
     def create(self, validated_data):
-        print('validated data ',validated_data)
         
         education_data = validated_data.pop('education', [])
         experiences_data = validated_data.pop('experiences', [])
         skills_data = validated_data.pop('skills', [])
         user = validated_data.get('userId', None)
-        print('check check user', user)
-
-        print('education == ',education_data)
-        print('experience == ',experiences_data)
-        print('skiils == ',skills_data)
-
-        print('after popping validating data', validated_data)
 
         tutor = Tutor.objects.get(user=user)
         tutor.cv = validated_data.get('cv', tutor.cv)
@@ -64,8 +56,6 @@ class TutorSerializer(serializers.ModelSerializer):
         tutor.headline = validated_data.get('headline', tutor.headline)
         tutor.status = Tutor.REQUESTED
         tutor.save()
-        print('tutor id',tutor)
-
 
         for edu_list in education_data:
             for edu in edu_list:
@@ -87,7 +77,6 @@ class TutorSerializer(serializers.ModelSerializer):
                 )
 
         for skill in skills_data:
-            print('skillllllllllll ========', skill)
             Skill.objects.create(
                 tutor=tutor,
                 skill_name=skill

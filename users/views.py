@@ -19,7 +19,6 @@ class RegisterView(APIView):
 
     def post(self, request):
         data = request.data
-        print('requested data === > ', data)
         
         user_serializer = UserSerializers(data=data)
 
@@ -41,7 +40,6 @@ class OTPVerification(APIView):
     def post(self, request):
         email = request.data.get('email')
         otp = request.data.get('otp')
-        print('otp  : ',email,otp)
 
         try:
             user = CustomUser.objects.get(email=email)
@@ -55,10 +53,8 @@ class OTPVerification(APIView):
             user.otp = None
             user.is_verified = True
             user.save()
-            print('Entered OTP is Correct')
             return Response(data='OTP verifed successfully', status=status.HTTP_200_OK)
         else:
-            print('Entered OTP is Incorrect')
             return Response(data='Invalid OTP', status=status.HTTP_400_BAD_REQUEST)
         
      
@@ -66,7 +62,6 @@ class OTPVerification(APIView):
 class ResendOtpView(APIView):
     def post(self,request):
         email = request.data.get('email')
-        print(email)
 
         if not email:
             return Response(data='Email is required', status=status.HTTP_400_BAD_REQUEST)
@@ -117,8 +112,6 @@ class ForgetPassword(APIView):
             user.otp = otp
             user.save()
             send_otp_email(email,otp)
-            print('OTP sended in forget password')
-            print(user.role)
             return Response(data={'message': 'OTP sent for password reset', 'role' : user.role }, status=status.HTTP_200_OK)
         
         except Exception as e:  
@@ -127,15 +120,12 @@ class ForgetPassword(APIView):
 
 class Logout(APIView):
     def post(self,request):
-        print('user logout', request.data)
         try:
             refresh = request.data['refresh']
             token = RefreshToken(refresh)
             token.blacklist()
-            print('user logouted ')
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
-            print('user logout not done')
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -146,9 +136,7 @@ class GoogleSignInView(generics.GenericAPIView):
     serializer_class = GoogleSignInSerializer
 
     def post(self, request):
-        print('data ====> ',request.data)
         serializer=self.serializer_class(data=request.data)
-        print("serializer =====",serializer)
         serializer.is_valid(raise_exception=True)
         
         user_data=serializer.validated_data
@@ -160,8 +148,6 @@ class GoogleSignInView(generics.GenericAPIView):
             last_name=user_data['last_name'],
             role=user_data['role']
         )
-        
-        print('User result:', result)
         
         return Response(result, status=status.HTTP_200_OK)
     

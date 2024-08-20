@@ -22,7 +22,6 @@ def send_otp_email(email, otp):
     message = f'Your OTP code is {otp}'
     email_from = settings.EMAIL_HOST_USER
     recipient_list = [email]
-    print('otp :', otp,'  ', email)
     send_mail(subject, message,email_from,recipient_list)
 
 
@@ -37,12 +36,8 @@ def generate_and_send_otp(sender,instance, created, **kwargs):
 
 @receiver(post_save, sender=CustomUser)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
-    print('Signal triggered')  
     if created and instance.role == 'tutor':
-        print(f'User created with role: {instance.role}')
-        print('Creating Tutor profile...')
         Tutor.objects.create(user=instance)
-        print('Tutor profile created.')
 
 
 

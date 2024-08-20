@@ -22,7 +22,6 @@ class UserSerializers(ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        print('Validating data ===', validated_data)
 
         if CustomUser.objects.filter(email=validated_data['email']).exists():
             raise ValidationError({'email': 'A user with this email already exists'})
@@ -34,12 +33,6 @@ class UserSerializers(ModelSerializer):
             user.set_password(password)
         user.save()
 
-        print('role', user.role)
-        print('pass', password)
-
-
-
- 
         return user
 
     def update(self, instance, validated_data):
@@ -63,8 +56,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user: CustomUser):
         token = super().get_token(user)
-        print(f"Validating user: {user}")
-        print(f"User role: {user.role}")
         user.last_login = now()
         user.save()
 
@@ -77,9 +68,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token['is_verified'] = user.is_verified
             token['is_active'] = user.is_active 
             token['status'] = user.tutor_profile.status
-            print('is a Tutor')
         else:        
-            print('is a studnet')
             token['user'] = user.username
             token['is_active'] = user.is_active 
             token['email'] = user.email
@@ -91,10 +80,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     
     def validate(self, attrs):
         data = super().validate(attrs)
-        print(f"User in validate: {self.user}")
 
         user = self.user
-        print(user)
 
         requested_role = attrs.get('role')
         if user.role != requested_role:
@@ -102,12 +89,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 'error' : 'Your are not authrized person'
             })
         if not user.is_verified:
-            print(user.is_verified)
-            print('user is not verified')
             otp = generate_otp()
             user.otp = otp
             user.save()
-            print(otp, user.email)
             send_otp_email(user.email, otp)
 
             
@@ -119,6 +103,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
         return data
+
+
+class RecaptchaVerifySerializer(serializers.Serializer):
+    token = serializers.CharField()
 
 
 class UserStatusSerializer(ModelSerializer):
