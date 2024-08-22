@@ -35,6 +35,7 @@ class Course(BaseModel):
         ('Approved', 'approved'),
         ('Declined', 'declined'),
         ('Pending', 'pending'),
+        ('Requested', 'requested'),
     )
 
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name='instructed_courses')
@@ -74,15 +75,16 @@ class Module(BaseModel):
     title = models.CharField(max_length=150, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     video = models.FileField(upload_to='module_videos/', null=True, blank=True)
+    duration = models.IntegerField(null=True, blank=True, default=0)
     notes = models.FileField(upload_to='module_notes/', null=True, blank=True)
     likes_count = models.IntegerField(default=0)
-    order = models.PositiveIntegerField(default=0)
+    views_count = models.IntegerField(default=0)
 
     def __str__(self):
         return self.title
     
     class Meta:
-        ordering = ['order']
+        ordering = ['id']
     
 
 class StudentCourseProgress(BaseModel):
