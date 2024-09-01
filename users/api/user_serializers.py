@@ -8,13 +8,22 @@ from user_profile.models import Tutor
 from ..signal import generate_otp, send_otp_email
 from rest_framework.exceptions import ValidationError
 from django.utils.timezone import now
+from course.models import Course
 
 
+
+
+
+class EnrolledCourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = '__all__'
 
 
 
 
 class UserSerializers(ModelSerializer):
+    enrolled_courses = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = CustomUser
         fields = [ 'id', 'username', 'first_name', 'last_name', 'last_login', 'email', 'password', 'bio',
@@ -43,6 +52,10 @@ class UserSerializers(ModelSerializer):
                 setattr(instance, key, value)
         instance.save()
         return instance
+    
+    def get_enrolled_courses(self, obj):
+        enroll_course = Course.objects.filter(student_progress__student=obj)
+        return EnrolledCourseSerializer(enroll_course, many=True).data
         
 
 

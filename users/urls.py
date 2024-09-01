@@ -1,14 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import RegisterView, OTPVerification, CustomTokenObtainPairView, ResendOtpView, ForgetPassword, Logout, GoogleSignInView, UserStatusUpdate
+from .views import RegisterView, OTPVerification, CustomTokenObtainPairView, ResendOtpView, ForgetPassword, Logout, GoogleSignInView, UserStatusUpdate, StudentProfileViewSet
 from rest_framework_simplejwt.views import TokenRefreshView
 
-# router = DefaultRouter()
-# router.register(r'profile-image', ProfileImageView, basename='imag')
+router = DefaultRouter()
+router.register(r'student-profile', StudentProfileViewSet, basename='student-profile')
 
 
 urlpatterns = [
-    # path('', include(router.urls)),
+    path('', include(router.urls)),
     path('register/', RegisterView.as_view(), name='register'),
     path('otp-verify/', OTPVerification.as_view(), name='otp_verify'),
     path('forget-password/', ForgetPassword.as_view(), name='forget_password'),

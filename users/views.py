@@ -9,7 +9,7 @@ from .signal import generate_otp, send_otp_email
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .utils import register_social_user
 from django.core.validators import EmailValidator
-from base.custom_permissions import IsAdmin
+from base.custom_permissions import IsAdmin, IsStudent
 
 
 
@@ -159,3 +159,15 @@ class UserStatusUpdate(generics.UpdateAPIView):
     serializer_class = UserStatusSerializer
     permission_classes = [IsAdmin]
     lookup_field = 'pk'
+
+
+
+
+class StudentProfileViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializers
+    # permission_classes = [IsStudent]
+
+    def get_queryset(self):
+        user = self.request.user
+        return CustomUser.objects.filter(id=user.id)
