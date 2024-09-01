@@ -4,6 +4,7 @@ from user_profile.models import Tutor
 from django.core.validators import MinValueValidator, MaxValueValidator
 from base.base_models import BaseModel
 from django.utils.text import slugify
+from django.db.models import Avg
 
 # Create your models here.
 
@@ -37,6 +38,11 @@ class Course(BaseModel):
         ('Pending', 'pending'),
         ('Requested', 'requested'),
     )
+    LEVEL_CHOICES = (
+        ('Beginner', 'beginner'),
+        ('Intermediate', 'intermediate'),
+        ('Advanced', 'advanced'),
+    )
 
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name='instructed_courses')
     category = models.ForeignKey(Category, related_name='courses', on_delete=models.CASCADE, null=True, blank=True)
@@ -46,10 +52,16 @@ class Course(BaseModel):
     thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     total_enrollment = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='Beginner')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     rental_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     rental_duration = models.PositiveIntegerField(default=0, null=True)
     is_active = models.BooleanField(default=True)
+
+    @property
+    def average_rating(self):
+        return self.reviews.aggregate(average_rating=Avg('rating'))['average_rating'] or 0
+    
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -77,9 +89,12 @@ class Module(BaseModel):
     video = models.FileField(upload_to='module_videos/', null=True, blank=True)
     duration = models.IntegerField(null=True, blank=True, default=0)
     notes = models.FileField(upload_to='module_notes/', null=True, blank=True)
-    likes_count = models.IntegerField(default=0)
-    views_count = models.IntegerField(default=0)
+    is_liked = models.BooleanField(default=False)
+    is_watched = models.BooleanField(default=False)
+    likes_count = models.PositiveBigIntegerField(default=0)
+    views_count = models.PositiveIntegerField(default=0)
 
+    
     def __str__(self):
         return self.title
     
@@ -102,7 +117,7 @@ class StudentCourseProgress(BaseModel):
     student = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='course_progress')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='student_progress')
     progress = models.CharField(max_length=20, choices=PROGRESS_CHOICES, default='Not Started')
-    watch_time = models.IntegerField(default=0)  # Watch time in minutes
+    watch_time = models.IntegerField(default=0)  
     last_accessed_module = models.ForeignKey(Module, on_delete=models.SET_NULL, null=True, blank=True)
     access_type = models.CharField(max_length=20, choices=ACCESS_TYPE_CHOICES, default='Lifetime')
     access_expiry_date = models.DateField(null=True, blank=True)
@@ -125,7 +140,7 @@ class Review(BaseModel):
 
 class Note(BaseModel):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='student_notes')
     content = models.TextField(null=True, blank=True)
     timeline = models.CharField(max_length=100, null=True, blank=True)
 
