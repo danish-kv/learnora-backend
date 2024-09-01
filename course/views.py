@@ -1,15 +1,29 @@
 from django.shortcuts import render
+from django.conf import settings
+from django.shortcuts import redirect
 from .models import Category, Course, Module, Comment, StudentCourseProgress, Review, Transaction, Note
+from users.models import CustomUser
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework import status, generics
-from .serializers import CourseSerializer, CategorySerializer, ModuleSerializer
+from .serializers import CourseSerializer, CategorySerializer, ModuleSerializer, ReviewSerializer, NotesSerializer
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.core.files.uploadedfile import UploadedFile
+from django.shortcuts import get_object_or_404
+from urllib.parse import urlencode
+from datetime import datetime
+from datetime import timedelta
+from django.db import transaction
 import json
+import stripe
+from base.custom_pagination_class import CustomPagination
+
+
 # Create your views here.
 
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 class CategoryViewSet(ModelViewSet):
@@ -19,35 +33,56 @@ class CategoryViewSet(ModelViewSet):
 
 
 class CourseViewSet(ModelViewSet):
-    queryset = Course.objects.all()
+    queryset = Course.objects.all().prefetch_related('reviews')
     serializer_class = CourseSerializer
     parser_classes = (MultiPartParser, FormParser, JSONParser)
-    lookup_field = 'slug'    
+    lookup_field = 'slug'
+    pagination_class = CustomPagination
+
+    def get_serializer_context(self):
+        return {'request' : self.request}
 
     def get_queryset(self):
-        if self.request.user.is_staff:
+        user = self.request.user
+        print('ppppppppppppppppppppp',user)
+        print('hihihihihihiihih')
+
+        if user.is_anonymous :
+            print('yesssssssssssssss')
+            return Course.objects.filter(status='Approved')
+        if not user.is_authenticated:
+            return Course.objects.filter(status='Approved')
+        if user.is_staff:
             return Course.objects.exclude(status='Pending')
+        elif hasattr(user, 'role'):
+            if user.role == 'tutor':
+                return Course.objects.all()
+            elif user.role == 'student':
+                return Course.objects.exclude(status="Pending")
         else: 
             return Course.objects.all()
         
     def perform_create(self, serializer):
-        serializer.save(tutor=self.request.user.tutor_profile)   
+        if hasattr(self.request.user, 'tutor_profile'):
+            serializer.save(tutor=self.request.user.tutor_profile)   
 
 
 class ModuleView(APIView):
     def post(self, request, *args, **kwargs):
-        print(request.data)
+        print('requested data',request.data)
         modules_data = json.loads(request.data.get('modules'))
-        print(modules_data)
+        print('module data ',modules_data)
         course_id = request.data.get('course')
-        print(course_id)
+        print('module daata', course_id)
         course = Course.objects.get(id=course_id)
 
         print(course)
+        course.status = 'Requested'
+        course.save()
 
 
         for i, data in enumerate(modules_data):
-            print(i, data)
+            # print(i, data)
             title = data['title']
             description = data['description']
             duration = data['duration']
@@ -257,6 +292,5 @@ class NotesViewSet(ModelViewSet):
     def get_queryset(self):
         print('requst user in notes :',self.request.user)
         return Note.objects.filter(user=self.request.user)
-
 
 
