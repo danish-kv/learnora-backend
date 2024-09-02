@@ -66,7 +66,7 @@ def register_social_user(provider, email,username, first_name, last_name, role):
                 last_name=last_name,
                 password=settings.SOCIAL_AUTH_PASSWORD,
                 auth_provider=provider,
-                email_verified=True,
+                is_verified=True,
                 role=role,
             )
             new_user.set_password(settings.SOCIAL_AUTH_PASSWORD)

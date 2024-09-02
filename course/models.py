@@ -52,7 +52,7 @@ class Course(BaseModel):
     thumbnail = models.ImageField(upload_to='thumbnails/', null=True, blank=True)
     total_enrollment = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='Beginner')
+    skill_level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default='Beginner')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     rental_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     rental_duration = models.PositiveIntegerField(default=0, null=True)

@@ -4,6 +4,10 @@ from rest_framework.views import APIView
 from users.models import CustomUser
 from django.db.models import Q
 from users.api.user_serializers import UserSerializers
+from rest_framework.viewsets import ModelViewSet
+from course.models import Course
+from course.serializers import CourseSerializer
+from base.custom_permissions import IsAdmin
 # Create your views here.
 
 class StudnetManageView(APIView):
@@ -36,3 +40,7 @@ class StudnetManageView(APIView):
 
 
 
+class RequestedCourses(ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [IsAdmin]

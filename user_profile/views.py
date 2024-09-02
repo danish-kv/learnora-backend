@@ -23,7 +23,7 @@ from django.conf import settings
 
 
 class TutorProfile(APIView):
-    # permission_classes = [IsTutor or IsAdmin]
+    permission_classes = [IsTutor | IsAdmin]
 
     def post(self, request):
         

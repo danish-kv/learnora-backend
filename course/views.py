@@ -18,6 +18,8 @@ from django.db import transaction
 import json
 import stripe
 from base.custom_pagination_class import CustomPagination
+from base.custom_permissions import IsAdmin, IsStudent, IsTutor
+from rest_framework.permissions import AllowAny
 
 
 # Create your views here.
@@ -29,6 +31,7 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all().order_by('id')
     serializer_class = CategorySerializer
+    permission_classes = [AllowAny]
 
 
 
@@ -38,29 +41,41 @@ class CourseViewSet(ModelViewSet):
     parser_classes = (MultiPartParser, FormParser, JSONParser)
     lookup_field = 'slug'
     pagination_class = CustomPagination
+    permission_classes = [AllowAny]
 
     def get_serializer_context(self):
         return {'request' : self.request}
 
     def get_queryset(self):
         user = self.request.user
-        print('ppppppppppppppppppppp',user)
-        print('hihihihihihiihih')
+        queryset = Course.objects.all().prefetch_related('reviews')
 
-        if user.is_anonymous :
-            print('yesssssssssssssss')
-            return Course.objects.filter(status='Approved')
-        if not user.is_authenticated:
-            return Course.objects.filter(status='Approved')
+
+        if user.is_anonymous or not user.is_authenticated :
+            queryset = queryset.filter(status='Approved')
+        
         if user.is_staff:
-            return Course.objects.exclude(status='Pending')
+            queryset = queryset.exclude(status='Pending')
+        
         elif hasattr(user, 'role'):
             if user.role == 'tutor':
-                return Course.objects.all()
+                queryset = queryset.all()
             elif user.role == 'student':
-                return Course.objects.exclude(status="Pending")
-        else: 
-            return Course.objects.all()
+                queryset = queryset.exclude(status="Pending")
+        
+        category_query = self.request.query_params.get('category', None)
+        if category_query:
+            queryset = queryset.filter(category__slug=category_query)
+
+        request_query = self.request.query_params.get('request_course', None)
+        if request_query:
+            queryset = queryset.filter(status='Requested')
+
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            queryset = queryset.filter(title__icontains=search_query)
+
+        return queryset
         
     def perform_create(self, serializer):
         if hasattr(self.request.user, 'tutor_profile'):
@@ -105,6 +120,9 @@ class ModuleView(APIView):
 class EditModuleView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerializer
+    permission_classes = [IsTutor]
+
+    
 
     def patch(self, request, *args, **kwargs):
         if 'toggle-like' in request.path:
@@ -136,8 +154,6 @@ class CoursePurchaseView(APIView):
         
         print(request.data)
         print(request.user)
-        # user_id = email = covert
-        # print(email, user_is)
         user = request.user
         course_id = request.data.get('course_id', '')
         access_type = request.data.get('access_type', '')
@@ -267,6 +283,7 @@ class PaymentSuccess(APIView):
 class ReviewViewSet(ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    permission_classes = [IsStudent]
 
 
     def get_serializer_context(self):
@@ -288,6 +305,7 @@ class ReviewViewSet(ModelViewSet):
 class NotesViewSet(ModelViewSet):
     queryset = Note.objects.all()
     serializer_class = NotesSerializer
+    permission_classes = [IsStudent]
 
     def get_queryset(self):
         print('requst user in notes :',self.request.user)

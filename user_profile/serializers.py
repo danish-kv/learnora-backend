@@ -37,11 +37,15 @@ class TutorSerializer(serializers.ModelSerializer):
     skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
     userId = serializers.CharField(write_only=True)
     user = UserSerializers(read_only=True) 
-    
+    total_courses = serializers.SerializerMethodField()
+
     class Meta:
         model = Tutor
-        fields = ['id', 'user', 'userId', 'cv', 'display_name', 'headline', 'status',  'education', 'experiences', 'skills' ]
-        
+        fields = ['id', 'user', 'userId', 'cv', 'display_name', 'headline', 'status',  'education', 'experiences', 'skills', 'total_courses' ]
+
+
+    def get_total_courses(self, obj):
+        return obj.instructed_courses.count()
     
     def create(self, validated_data):
         
