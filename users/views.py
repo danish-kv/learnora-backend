@@ -73,6 +73,7 @@ class ResendOtpView(APIView):
         
         otp = generate_otp()
         user.otp = otp
+        print(otp,'otp')
         user.save()
 
         send_otp_email(email,otp)

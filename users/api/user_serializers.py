@@ -41,6 +41,7 @@ class UserSerializers(ModelSerializer):
         if password:
             user.set_password(password)
         user.save()
+        print('passsword', password)
 
         return user
 
@@ -93,21 +94,26 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     
     def validate(self, attrs):
         data = super().validate(attrs)
-
         user = self.user
-
         requested_role = attrs.get('role')
+
         if user.role != requested_role:
             raise serializers.ValidationError({
                 'error' : 'Your are not authrized person'
-            })
+            }, code='authorization')
+        
         if not user.is_verified:
             otp = generate_otp()
             user.otp = otp
             user.save()
             send_otp_email(user.email, otp)
-
-            
+        
+        
+        if not user.is_active:
+            print('not acsfgdsdtive')
+            raise serializers.ValidationError({
+                'error': 'Your account has been blocked by the admin.'
+            }, code='blocked')
 
         data.update({'access_token': data.pop('access')})
         data.update({'refresh_token': data.pop('refresh')})
@@ -118,8 +124,6 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
-class RecaptchaVerifySerializer(serializers.Serializer):
-    token = serializers.CharField()
 
 
 class UserStatusSerializer(ModelSerializer):
