@@ -14,6 +14,7 @@ urlpatterns = [
     path('modules/', ModuleView.as_view(), name='module'),
     path('modules/<pk>/', EditModuleView.as_view(), name='module-detail'),
     path('modules/<pk>/toggle-like/', EditModuleView.as_view(), name='module-toggle-like'),
+    path('modules/<pk>/mark-watched/', EditModuleView.as_view(), name='mark-watched'),
     path('stripe/course-purchase', CoursePurchaseView.as_view(), name='stripe-payment'),
     path('payment_success/', PaymentSuccess.as_view(), name='payment-success'),
 ]

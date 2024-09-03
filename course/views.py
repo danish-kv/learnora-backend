@@ -20,7 +20,7 @@ import stripe
 from base.custom_pagination_class import CustomPagination
 from base.custom_permissions import IsAdmin, IsStudent, IsTutor
 from rest_framework.permissions import AllowAny
-
+from django.db.models import Q
 
 # Create your views here.
 
@@ -32,6 +32,34 @@ class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all().order_by('id')
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'tutor_profile'):
+            serializer.save(status='Requested')
+        else:
+            serializer.save()
+
+    def get_queryset(self):
+        user = self.request.user
+        # print('user.role',user.role)
+        queryset = Category.objects.all().order_by('id')
+
+        if user.is_anonymous or not user.is_authenticated :
+            queryset = queryset.filter(Q(status='Approved') & Q(is_active = True))
+
+        if user.is_staff:
+            queryset = queryset.exclude(status='Requested')
+        elif hasattr(user, 'role'):
+            if user.role == 'student':
+
+                queryset = queryset.filter(Q(status='Approved') & Q(is_active=True))
+            elif user.role == 'tutor':
+                queryset = queryset.exclude(Q(status='Requested') | Q(is_active=False))
+
+        
+        return queryset
+        
+
 
 
 
@@ -52,7 +80,7 @@ class CourseViewSet(ModelViewSet):
 
 
         if user.is_anonymous or not user.is_authenticated :
-            queryset = queryset.filter(status='Approved')
+            queryset = queryset.filter(status='Approved', is_active=True)
         
         if user.is_staff:
             queryset = queryset.exclude(status='Pending')
@@ -61,7 +89,12 @@ class CourseViewSet(ModelViewSet):
             if user.role == 'tutor':
                 queryset = queryset.all()
             elif user.role == 'student':
-                queryset = queryset.exclude(status="Pending")
+                queryset = queryset.filter( Q(status='Approved', is_active=True))
+                # purchased_courses = Course.objects.filter(student_progress__student=user)
+                # queryset = queryset.filter(
+                #     Q(status='Approved', is_active=True) |
+                #     Q(id__in=purchased_courses.values('id'))
+                # ).distinct()
         
         category_query = self.request.query_params.get('category', None)
         if category_query:
@@ -80,6 +113,15 @@ class CourseViewSet(ModelViewSet):
     def perform_create(self, serializer):
         if hasattr(self.request.user, 'tutor_profile'):
             serializer.save(tutor=self.request.user.tutor_profile)   
+
+
+    def get_object(self):
+        print(self.kwargs)
+        slug = self.kwargs.get('slug', None)
+        if slug:
+            data = Course.objects.filter(slug=slug).first()
+            print(data)
+        return data
 
 
 class ModuleView(APIView):
@@ -120,29 +162,54 @@ class ModuleView(APIView):
 class EditModuleView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Module.objects.all()
     serializer_class = ModuleSerializer
-    permission_classes = [IsTutor]
+    permission_classes = [IsTutor | IsStudent]
 
     
 
     def patch(self, request, *args, **kwargs):
         if 'toggle-like' in request.path:
             return self.toggle_like(request, *args, **kwargs)
+        if 'mark-watched' in request.path:
+            return self.mark_watched(request, *args, **kwargs)
         return super().patch(request, *args, **kwargs)
 
     def toggle_like(self, request, pk=None):
         module = get_object_or_404(Module, pk=pk)
-        user_liked = not module.is_liked
-        print('user liked :',user_liked)
-        module.is_liked = user_liked
+        student = request.user
 
-        if user_liked:
-            module.likes_count += 1
+        course_progress, create = StudentCourseProgress.objects.get_or_create(student=student, course=module.course)
+
+        if course_progress.liked_modules.filter(id=module.id).exists():
+            course_progress.liked_modules.remove(module)
+            module.likes_count = max(0, module.likes_count-1)
+
         else:
-            module.likes_count = max(0, module.likes_count - 1)
-
+            course_progress.liked_modules.add(module)
+            module.likes_count += 1
+        
         module.save()
+        course_progress.save()
 
-        return Response({'likes_count' : module.likes_count, 'is_liked' : module.is_liked}, status=status.HTTP_200_OK)
+        return Response({'likes_count' : module.likes_count, 'is_liked' : course_progress.liked_modules.filter(id=module.id).exists()}, status=status.HTTP_200_OK)
+    
+    def mark_watched(self, request, pk=None):
+        module = get_object_or_404(Module, pk=pk)
+        student = request.user
+        module.views_count += 1
+
+        course_progress, created = StudentCourseProgress.objects.get_or_create(
+            student=student,
+            course=module.course
+        )
+
+        if not course_progress.watched_modules.filter(id=module.id).exists():
+            course_progress.watched_modules.add(module)
+            course_progress.watch_time += module.duration
+            course_progress.last_accessed_module = module
+            course_progress.save()
+
+        return Response({'message' : 'Marked watched module'}, status=status.HTTP_200_OK)
+
 
 
 
@@ -236,6 +303,7 @@ class PaymentSuccess(APIView):
                 course = Course.objects.get(slug=course_id)
                 user_id = CustomUser.objects.get(id=user_id)
 
+
                 existing_progress = StudentCourseProgress.objects.filter(student=user_id, course=course).first()
                 if existing_progress:
                     if access_type == 'Rental' and existing_progress.access_expiry_date and existing_progress.access_expiry_date > datetime.now().date():
@@ -267,6 +335,11 @@ class PaymentSuccess(APIView):
                     access_type= access_type,
                     access_expiry_date = access_expiry_date
                 )
+
+                course.total_enrollment += 1
+                course.save()
+                print('coruse total enrollment increament')
+
             print('created')
             return Response({'message' : "payment success and access granted"}, status=status.HTTP_201_CREATED)
 

@@ -22,6 +22,9 @@ class NotesSerializer(ModelSerializer):
 
 class ModuleSerializer(ModelSerializer):
     student_notes = serializers.SerializerMethodField()
+    is_watched = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Module
@@ -33,6 +36,20 @@ class ModuleSerializer(ModelSerializer):
             notes = Note.objects.filter(module=obj, user=user)
             return NotesSerializer(notes, many=True).data
         
+    def get_is_watched(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            progress =  StudentCourseProgress.objects.filter(student=user, course=obj.course).first()
+            return obj in progress.watched_modules.all() if progress else False
+        return False
+    
+    def get_is_liked(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            progress = StudentCourseProgress.objects.filter(student=user, course=obj.course).first()
+            return obj in progress.liked_modules.all() if progress else False
+        
+    
     def update(self, instance, validated_data):
 
         new_video = validated_data.get('video', None)
@@ -80,6 +97,7 @@ class CourseSerializer(ModelSerializer):
     progress = serializers.SerializerMethodField(read_only=True)
     average_rating = serializers.SerializerMethodField(read_only=True)
     category_data = CategorySerializer(source='category' ,read_only =True)
+    requested_course_count = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Course
         fields = '__all__'
@@ -94,6 +112,11 @@ class CourseSerializer(ModelSerializer):
         
     def get_average_rating(self,obj):
         return obj.average_rating
+    
+    def get_requested_course_count(self, obj):
+        return Course.objects.filter(status='Requested').count()
+        
+
     
 
     def update(self, instance, validated_data):

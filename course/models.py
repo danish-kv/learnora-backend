@@ -10,9 +10,15 @@ from django.db.models import Avg
 
 
 class Category(models.Model):
+    STATUS_FEILDS = (
+        ('Requested', 'requested'),
+        ('Approved', 'approved')
+    )
+
     name = models.CharField(unique=True, max_length=100, null=True, blank=True)
     slug = models.SlugField(max_length=120, unique=True, blank=True)
     is_active = models.BooleanField(default=True)
+    status = models.CharField(max_length=20, choices=STATUS_FEILDS, default='Approved')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -90,7 +96,6 @@ class Module(BaseModel):
     duration = models.IntegerField(null=True, blank=True, default=0)
     notes = models.FileField(upload_to='module_notes/', null=True, blank=True)
     is_liked = models.BooleanField(default=False)
-    is_watched = models.BooleanField(default=False)
     likes_count = models.PositiveBigIntegerField(default=0)
     views_count = models.PositiveIntegerField(default=0)
 
@@ -118,9 +123,12 @@ class StudentCourseProgress(BaseModel):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='student_progress')
     progress = models.CharField(max_length=20, choices=PROGRESS_CHOICES, default='Not Started')
     watch_time = models.IntegerField(default=0)  
-    last_accessed_module = models.ForeignKey(Module, on_delete=models.SET_NULL, null=True, blank=True)
+    last_accessed_module = models.ForeignKey(Module, on_delete=models.SET_NULL, null=True, blank=True, related_name='last_progress')
     access_type = models.CharField(max_length=20, choices=ACCESS_TYPE_CHOICES, default='Lifetime')
     access_expiry_date = models.DateField(null=True, blank=True)
+    liked_modules = models.ManyToManyField(Module, related_name='liked_video', blank=True)
+    watched_modules = models.ManyToManyField(Module, related_name='watched_video', blank=True)
+
 
 
     def __str__(self):
