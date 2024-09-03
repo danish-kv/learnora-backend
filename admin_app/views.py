@@ -5,12 +5,12 @@ from users.models import CustomUser
 from django.db.models import Q
 from users.api.user_serializers import UserSerializers
 from rest_framework.viewsets import ModelViewSet
-from course.models import Course
-from course.serializers import CourseSerializer
-from base.custom_permissions import IsAdmin
+from course.models import Course, Category
+from course.serializers import CourseSerializer, CategorySerializer
+from base.custom_permissions import IsAdmin, IsTutor
 # Create your views here.
 
-class StudnetManageView(APIView):
+class StudentManageView(APIView):
     def get(self, request):
         student = CustomUser.objects.filter(Q (role='student') & Q(is_superuser=False))
         print('students' , student)
@@ -41,6 +41,12 @@ class StudnetManageView(APIView):
 
 
 class RequestedCourses(ModelViewSet):
-    queryset = Course.objects.all()
+    queryset = Course.objects.filter(status='Requested')
     serializer_class = CourseSerializer
     permission_classes = [IsAdmin]
+
+
+class RequestedCategory(ModelViewSet):
+    queryset = Category.objects.filter(status='Requested')
+    serializer_class = CategorySerializer
+    permission_classes = [IsAdmin | IsTutor]
