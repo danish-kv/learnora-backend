@@ -1,9 +1,8 @@
-from rest_framework.serializers import ModelSerializer, JSONField, FileField
+from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
 from .models import Category, Course, Module, Comment, StudentCourseProgress, Review, Transaction, Note
 from users.models import CustomUser
 from user_profile.serializers import TutorSerializer
-from user_profile.models import Tutor
 from users.api.user_serializers import UserSerializers
 
 
@@ -12,6 +11,16 @@ class CategorySerializer(ModelSerializer):
     class Meta:
         model = Category
         fields = '__all__'
+
+    def validate_name(self,value):
+        if not value.strip():
+            print('yes')
+            raise serializers.ValidationError('Category name cannot be empty')
+        
+        if Category.objects.filter(name=value).exists():
+            raise serializers.ValidationError('Category already exists')
+        
+        return value
 
 
 class NotesSerializer(ModelSerializer):
@@ -30,6 +39,25 @@ class ModuleSerializer(ModelSerializer):
         model = Module
         fields = "__all__"
 
+    def validate_video(self, value):
+
+        if value.size > 50 * 1024 * 1024:
+            raise serializers.ValidationError('Video file size should not exceed 50 MB')
+        
+        if not value.name.endswith(('mp4', 'mov', 'avi')):
+            raise serializers.ValidationError('Invalid video type')
+        
+        return value
+    
+
+    def validate_notes(self, value):
+        if value.size > 10 * 1024 * 1024:
+            raise serializers.ValidationError('Notes file size should not be exceed 10MB')
+        
+        if not value.name.endswith(('pdf', 'docx')):
+            raise serializers.ValidationError('Invalid file type for notes')
+        return value
+    
     def get_student_notes(self, obj):
         user = self.context['request'].user
         if user.is_authenticated:
@@ -85,6 +113,10 @@ class ReviewSerializer(ModelSerializer):
         user = self.context['request'].user
         return obj.user == user
     
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+    
  
 
 
@@ -102,6 +134,19 @@ class CourseSerializer(ModelSerializer):
         model = Course
         fields = '__all__'
 
+    def validate_thumbnail(self, value):
+
+        max_file_size = 2 * 1024 * 1024 
+        allowed_formats = ['image/jpeg', 'image/png']
+
+        if value.size > max_file_size:
+            raise serializers.ValidationError('Thumbnail size should not be exceed 2MB')
+        
+        if value.content_type not in allowed_formats:
+            raise serializers.ValidationError("Thumbnail image format should be JPEG or PNG.")
+
+        return value
+    
     def get_progress(self, obj):
         request = self.context.get('request')
         if request and request.user and request.user.is_authenticated:
