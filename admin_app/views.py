@@ -50,3 +50,8 @@ class RequestedCategory(ModelViewSet):
     queryset = Category.objects.filter(status='Requested')
     serializer_class = CategorySerializer
     permission_classes = [IsAdmin | IsTutor]
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'tutor_profile'):
+            serializer.save(status='Requested')
+

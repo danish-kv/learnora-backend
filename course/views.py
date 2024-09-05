@@ -33,15 +33,10 @@ class CategoryViewSet(ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [AllowAny]
 
-    def perform_create(self, serializer):
-        if hasattr(self.request.user, 'tutor_profile'):
-            serializer.save(status='Requested')
-        else:
-            serializer.save()
+    
 
     def get_queryset(self):
         user = self.request.user
-        # print('user.role',user.role)
         queryset = Category.objects.all().order_by('id')
 
         if user.is_anonymous or not user.is_authenticated :
