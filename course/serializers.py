@@ -1,6 +1,6 @@
 from rest_framework.serializers import ModelSerializer
 from rest_framework import serializers
-from .models import Category, Course, Module, Comment, StudentCourseProgress, Review, Transaction, Note
+from .models import Category, Course, Module, StudentCourseProgress, Review, Transaction, Note
 from users.models import CustomUser
 from user_profile.serializers import TutorSerializer
 from users.api.user_serializers import UserSerializers
