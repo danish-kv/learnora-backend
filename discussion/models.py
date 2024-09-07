@@ -1,7 +1,7 @@
 from django.db import models
 from base.base_models import BaseModel
 from users.models import CustomUser
-
+from django.db import transaction
 # Create your models here.
 
 
@@ -25,15 +25,24 @@ class Discussion(BaseModel):
     def downvote_count(self):
         return self.downvoted_by.count()
 
+    @transaction.atomic
     def upvote(self, user):
-        if user in self.downvoted_by.all():
-            self.downvoted_by.remove(user)
-        self.upvoted_by.add(user)
-
-    def downvote(self, user):
         if user in self.upvoted_by.all():
             self.upvoted_by.remove(user)
-        self.downvoted_by.add(user)
+
+        else:
+            if user in self.downvoted_by.all():
+                self.downvoted_by.remove(user)
+            self.upvoted_by.add(user)
+
+    @transaction.atomic
+    def downvote(self, user):
+        if user in self.downvoted_by.all():
+            self.downvoted_by.remove(user)
+        else:
+            if user in self.upvoted_by.all():
+                self.upvoted_by.remove(user)
+            self.downvoted_by.add(user)
     
 
 class Comment(BaseModel):

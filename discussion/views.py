@@ -24,7 +24,7 @@ def create_discussion(request):
 
         data = request.data.copy()
         data['user'] = user.id
-        serializer = DiscussionSerializer(data=data)
+        serializer = DiscussionSerializer(data=data, context={'request' : request})
 
         if serializer.is_valid():
             serializer.save(user=user)
@@ -54,9 +54,28 @@ class DiscussionViewSet(ModelViewSet):
         return Response({'message' : 'Unliked successfully', 'downvote_count' : discussion.downvote_count}, status=status.HTTP_200_OK)
 
 
+
+    def update(self, request, *args, **kwargs):
+
+        discussion = self.get_object()
+        if discussion.user != request.user:
+            return Response({'error' : 'You are not allowed to edit this'}, status=status.HTTP_403_FORBIDDEN)
+        
+        return super().update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        disucssion = self.get_object()
+        if disucssion.user != request.user:
+            return Response({'error' : 'you are not allowed to delete this post'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+    
+
 class CommentViewSet(ModelViewSet):
-    queryset = Comment
+    queryset = Comment.objects.all()
     serializer_class = CommentSerializer
+
+    def get_serializer_context(self):
+        return {'request': self.request}
 
     def perform_create(self, serializer):
         print(self.request.data)
@@ -67,4 +86,18 @@ class CommentViewSet(ModelViewSet):
             parent = Comment.objects.get(id=parent_id)
         serializer.save(user=self.request.user, parent=parent)
 
+
+
+    def update(self, request, *args, **kwargs):
+        comment = self.get_object()
+        print(request.data)
+        if comment.user != request.user:
+            return Response({'error' : 'you are not allowed to edit this comment'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        if comment.user != request.user:
+            return Response({'error' : ' You are not allowed to delete this comment'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 

@@ -8,17 +8,21 @@ from users.api.user_serializers import UserSerializers
 class CommentSerializer(serializers.ModelSerializer):
     user = UserSerializers(read_only=True)
     replies = serializers.SerializerMethodField()  
+    is_my_comment = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = Comment
         fields = '__all__'
 
     def get_replies(self, obj):
         if obj.replies.exists():
-            return CommentSerializer(obj.replies.all(), many=True).data
+            return CommentSerializer(obj.replies.all(), many=True, context=self.context).data
         return []
     
     
-
+    
+    def get_is_my_comment(self, obj):
+        user = self.context.get('request').user 
+        return user == obj.user
     
 
 
@@ -29,6 +33,9 @@ class DiscussionSerializer(serializers.ModelSerializer):
     downvote_count = serializers.IntegerField( read_only=True)
     commented_discussion  = serializers.SerializerMethodField(read_only=True)
     user = UserSerializers(read_only = True)
+    is_my_discussion = serializers.SerializerMethodField(read_only=True)
+    is_upvoted = serializers.SerializerMethodField(read_only=True)
+    is_downvoted = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Discussion
@@ -66,4 +73,17 @@ class DiscussionSerializer(serializers.ModelSerializer):
 
 
     def get_commented_discussion(self, obj):
-        return CommentSerializer(obj.commented_discussion.filter(parent=None), many=True).data
+        return CommentSerializer(obj.commented_discussion.filter(parent=None), many=True, context=self.context).data
+    
+
+    def get_is_my_discussion(self, obj):
+        user = self.context['request'].user
+        return obj.user == user
+    
+    def get_is_upvoted(self, obj):
+        user = self.context['request'].user
+        return user in obj.upvoted_by.all()
+    
+    def get_is_downvoted(self, obj):
+        user = self.context['request'].user
+        return user in obj.downvoted_by.all()
