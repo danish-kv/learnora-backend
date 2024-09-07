@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.conf import settings
 from django.shortcuts import redirect
-from .models import Category, Course, Module, Comment, StudentCourseProgress, Review, Transaction, Note
+from .models import Category, Course, Module, StudentCourseProgress, Review, Transaction, Note
 from users.models import CustomUser
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView

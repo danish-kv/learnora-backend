@@ -11,6 +11,7 @@ urlpatterns = [
     path('',include('user_profile.urls')),
     path('', include('admin_app.urls')),
     path('', include('course.urls')),
+    path('', include('discussion.urls')),
     
 ]
 

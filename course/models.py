@@ -156,13 +156,7 @@ class Note(BaseModel):
         return f'{self.user.username} - {self.module.title}'
 
 
-class Comment(BaseModel):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    module = models.ForeignKey(Module, on_delete=models.CASCADE)
-    comment = models.TextField(null=True, blank=True)
 
-    def __str__(self):
-        return f'{self.user.username} - {self.module.title}'
 
 
 

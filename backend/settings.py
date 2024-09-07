@@ -49,7 +49,8 @@ INSTALLED_APPS = [
     'user_profile',
     'course',
     'admin_app',
-
+    'discussion',
+    
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -79,15 +80,22 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
 } 
 
-# REST_FRAMEWORK = {
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.IsAuthenticated',
-#     ],
-#     'DEFAULT_AUTHENTICATION_CLASSES': (
-#         'rest_framework_simplejwt.authentication.JWTAuthentication',
-#     ),
-# }
 
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/day',  # Example rate, customize as per your need
+    }
+}
 
 
 
