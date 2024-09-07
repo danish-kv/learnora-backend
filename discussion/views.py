@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework.decorators import api_view, throttle_classes, permission_classes
+from rest_framework.decorators import api_view, throttle_classes, permission_classes , action
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
 from .serializers import DiscussionSerializer, CommentSerializer
@@ -34,20 +34,24 @@ def create_discussion(request):
 
 
 class DiscussionViewSet(ModelViewSet):
-    queryset = Discussion.objects.all().prefetch_related('commented_discussion')
+    queryset = Discussion.objects.all().prefetch_related('user').prefetch_related('commented_discussion')
     serializer_class = DiscussionSerializer
     permission_classes = [IsStudent]
 
-
+    @action(detail=True, methods=['post'])
     def upvote(self, request, pk=None):
         discussion = self.get_object()
-        discussion.upvote()
+        user = request.user
+        discussion.upvote(user)
+        
         return Response({'message' : 'Liked successfully', 'upvote_count' : discussion.upvote_count}, status=status.HTTP_200_OK)
     
+    @action(detail=True, methods=['post'])
     def downvote(self, request, pk=None):
         discussion = self.get_object()
-        discussion.downvote()
-        return Response({'message' : 'Unliked successfully', 'upvote_count' : discussion.upvote_count}, status=status.HTTP_200_OK)
+        user = request.user
+        discussion.downvote(user)
+        return Response({'message' : 'Unliked successfully', 'downvote_count' : discussion.downvote_count}, status=status.HTTP_200_OK)
 
 
 class CommentViewSet(ModelViewSet):

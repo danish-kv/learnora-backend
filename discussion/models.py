@@ -10,19 +10,30 @@ class Discussion(BaseModel):
     title = models.CharField(max_length=100, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     photo = models.ImageField(upload_to='discussion/', null=True, blank=True)
-    upvote_count = models.PositiveIntegerField(default=0)
-    downvote_count = models.PositiveIntegerField(default=0)
+    upvoted_by = models.ManyToManyField(CustomUser, related_name='upvoted_discussions', blank=True)
+    downvoted_by = models.ManyToManyField(CustomUser, related_name='downvoted_discussions', blank=True)
 
     def __str__(self) -> str:
         return f'{self.user.username} - discussion - {self.title}'
     
-    def upvote(self):
-        self.upvote_count += 1
-        self.save()
 
-    def downvote(self):
-        self.downvote_count -= 1
-        self.save()
+    @property
+    def upvote_count(self):
+        return self.upvoted_by.count()
+    
+    @property
+    def downvote_count(self):
+        return self.downvoted_by.count()
+
+    def upvote(self, user):
+        if user in self.downvoted_by.all():
+            self.downvoted_by.remove(user)
+        self.upvoted_by.add(user)
+
+    def downvote(self, user):
+        if user in self.upvoted_by.all():
+            self.upvoted_by.remove(user)
+        self.downvoted_by.add(user)
     
 
 class Comment(BaseModel):

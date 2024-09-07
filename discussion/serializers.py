@@ -25,6 +25,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class DiscussionSerializer(serializers.ModelSerializer):
+    upvote_count = serializers.IntegerField( read_only=True)
+    downvote_count = serializers.IntegerField( read_only=True)
     commented_discussion  = serializers.SerializerMethodField(read_only=True)
     user = UserSerializers(read_only = True)
 
@@ -32,8 +34,8 @@ class DiscussionSerializer(serializers.ModelSerializer):
         model = Discussion
         fields = '__all__'
         extra_kwargs = {
-            'upvote_count' : {'required' : False},
-            'downvote_count' : {'required' : False}
+            'upvoted_count' : {'required' : False},
+            'downvoted_count' : {'required' : False}
         }
 
 
