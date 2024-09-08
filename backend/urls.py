@@ -12,6 +12,7 @@ urlpatterns = [
     path('', include('admin_app.urls')),
     path('', include('course.urls')),
     path('', include('discussion.urls')),
+    path('', include('community.urls')),
     
 ]
 
