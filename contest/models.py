@@ -18,13 +18,16 @@ class Contest(BaseModel):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, related_name='contests')
     name = models.CharField(max_length=200, blank=True)
     description = models.TextField(blank=True)
-    total_questions = models.IntegerField(default=10)
-    max_points = models.IntegerField(default=10)
+    total_questions = models.IntegerField(default=0)
+    max_points = models.IntegerField(default=0)
     start_time = models.DateTimeField(null=True)
     end_time = models.DateTimeField(null=True)
+    difficulty_level = models.CharField(blank=True)
     time_limit = models.DurationField(null=True, blank=True, help_text="Time limit for contest participation (e.g., 00:10:00 for 10 minutes).")
     status = models.CharField(choices=STATUS_CHOICES, max_length=10, default='scheduled')
     participants = models.ManyToManyField(CustomUser, through='Participant', blank=True)
+    is_active = models.BooleanField(default=False)
+
 
     def __str__(self) -> str:
         return self.name
@@ -32,7 +35,7 @@ class Contest(BaseModel):
 
 
 class Question(BaseModel):
-    contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='questions')
+    contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='questions', null=True)
     question_text = models.TextField()
 
     def __str__(self) -> str:
@@ -40,7 +43,7 @@ class Question(BaseModel):
     
 
 class Option(BaseModel):
-    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='options')
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='options', null=True)
     option_text = models.CharField(max_length=200)
     is_correct = models.BooleanField(default=False)
 
@@ -49,8 +52,8 @@ class Option(BaseModel):
     
 
 class Participant(BaseModel):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='contest_participants')
-    contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='contest_participants')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='contest_participants', null=True)
+    contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='contest_participants', null=True)
     score = models.IntegerField(default=0)
     time_taken = models.DurationField(blank=True)
     completed_at = models.DateTimeField(null=True)
@@ -61,8 +64,8 @@ class Participant(BaseModel):
 
 
 class Submission(BaseModel):
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE , related_name='submissions')
-    question = models.ForeignKey(Question, on_delete=models.CASCADE , related_name='submissions')
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE , related_name='submissions', null=True)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE , related_name='submissions', null=True)
     selected_option =  models.ForeignKey(Option, on_delete=models.CASCADE)
     is_correct = models.BooleanField(default=False)
 
@@ -72,8 +75,8 @@ class Submission(BaseModel):
 
 
 class Leaderboard(BaseModel):
-    contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='leaderboards')
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='leaderboards')
+    contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='leaderboards', null=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='leaderboards',null=True)
     score = models.IntegerField(default=0)
     rank = models.IntegerField(null=True)
 

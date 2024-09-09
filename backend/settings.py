@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'course',
     'admin_app',
     'discussion',
+    'contest',
     
 ]
 

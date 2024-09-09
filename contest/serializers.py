@@ -1,5 +1,6 @@
 from rest_framework import serializers 
 from .models import Contest, Question, Option, Participant, Submission, Leaderboard
+from course.serializers import CategorySerializer
 
 
 
@@ -11,15 +12,27 @@ class OptionSerializer(serializers.ModelSerializer):
 
 
 class QuestionSerializer(serializers.ModelSerializer):
-    options = OptionSerializer(many=True)
-    
+    options = OptionSerializer(many=True, required=False)
+
     class Meta:
         model = Question
         fields = '__all__'
 
+    def create(self, validated_data):
+        print(validated_data)
+        options_data = validated_data.pop('options', [])
+        question = Question.objects.create(**validated_data)
+
+        for option in options_data:
+            print(option)
+            Option.objects.create(question=question, **option)
+        return question
+
+
 
 class ContestSerializer(serializers.ModelSerializer):
-    question = QuestionSerializer(many=True)
+    questions = QuestionSerializer(many=True, required=False)
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Contest
