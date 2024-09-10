@@ -55,7 +55,7 @@ class Participant(BaseModel):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='contest_participants', null=True)
     contest = models.ForeignKey(Contest, on_delete=models.CASCADE, related_name='contest_participants', null=True)
     score = models.IntegerField(default=0)
-    time_taken = models.DurationField(blank=True)
+    time_taken = models.DurationField(blank=True, null=True)
     completed_at = models.DateTimeField(null=True)
 
     def __str__(self) -> str:
@@ -66,7 +66,7 @@ class Participant(BaseModel):
 class Submission(BaseModel):
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE , related_name='submissions', null=True)
     question = models.ForeignKey(Question, on_delete=models.CASCADE , related_name='submissions', null=True)
-    selected_option =  models.ForeignKey(Option, on_delete=models.CASCADE)
+    selected_option =  models.ForeignKey(Option, on_delete=models.CASCADE, null=True)
     is_correct = models.BooleanField(default=False)
 
     def __str__(self) -> str:

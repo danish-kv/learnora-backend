@@ -1,7 +1,7 @@
 from rest_framework import serializers 
 from .models import Contest, Question, Option, Participant, Submission, Leaderboard
 from course.serializers import CategorySerializer
-
+from users.api.user_serializers import UserSerializers
 
 
 
@@ -33,10 +33,24 @@ class QuestionSerializer(serializers.ModelSerializer):
 class ContestSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True, required=False)
     category = CategorySerializer(read_only=True)
+    participants = UserSerializers(many=True, read_only=True)
+    participant_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Contest
         fields = '__all__'
+
+    
+    def get_participant_id(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            try:
+                participant  = Participant.objects.get(user=user, contest=obj)
+                return participant.id
+            except Participant.DoesNotExist:
+                return None
+        return None
 
 
 class ParticipantSerializer(serializers.ModelSerializer):
