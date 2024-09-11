@@ -3,6 +3,7 @@ from user_profile.models import Tutor
 from users.models import CustomUser
 from course.models import Category
 from base.base_models import BaseModel
+from django.utils.text import slugify
 
 # Create your models here.
 
@@ -16,6 +17,7 @@ class Contest(BaseModel):
 
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, null=True, blank=True, related_name='contests')
     category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True, related_name='contests')
+    slug = models.SlugField(max_length=250, unique=True, null=True)
     name = models.CharField(max_length=200, blank=True)
     description = models.TextField(blank=True)
     total_questions = models.IntegerField(default=0)
@@ -28,6 +30,17 @@ class Contest(BaseModel):
     participants = models.ManyToManyField(CustomUser, through='Participant', blank=True)
     is_active = models.BooleanField(default=False)
 
+
+    def save(self, *args, **kwargs):
+        if not self.slug or Contest.objects.filter(ph=self.pk, name=self.name).exists() == False:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            num = 1
+            while Contest.objects.filter(slug=slug).exists():
+                slug = f'{base_slug}-{num}'
+                num += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         return self.name

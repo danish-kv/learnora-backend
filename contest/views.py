@@ -17,10 +17,20 @@ class ContestViewSet(ModelViewSet):
     serializer_class = ContestSerializer
 
 
+    def create(self, request, *args, **kwargs):
+        print('data in request data ==',request.data)
+        return super().create(request, *args, **kwargs)
+
+
+
     @action(detail=True, methods=['post'], url_path='participate')
     def participate(self, request, pk=None):
         contest = self.get_object()
         user = request.user
+
+        if contest.status != 'ongoing':
+            return Response({'error' : 'Contest is is not active for participation'}, status=status.HTTP_400_BAD_REQUEST)
+        
 
         participant, created = Participant.objects.get_or_create(contest=contest, user=user)
 
@@ -30,7 +40,6 @@ class ContestViewSet(ModelViewSet):
         serializer = ParticipantSerializer(participant)
 
         return Response(serializer.data)
-    
 
 
 
@@ -61,12 +70,23 @@ class SubmissionViewSet(ModelViewSet):
         except (Participant.DoesNotExist, Question.DoesNotExist, Option.DoesNotExist):
             return Response({'detail' : 'Invalid data'}, status=status.HTTP_400_BAD_REQUEST)
         
+        contest = participant.contest
+        current_time = now()
+        allowed_time = participant.created_at + contest.time_limit
+        print('time limit ==',contest.time_limit)
+        print('allowed time ==',allowed_time)
+
+
+        if (current_time > allowed_time):
+            return Response({'detail' : 'Time limit exceeded. Cannot submit the answer'}, status=status.HTTP_307_TEMPORARY_REDIRECT)
+        
+
+        if Submission.objects.filter(participant=participant, question=question).exists():
+            return Response({'info' : 'You have already submitted this question'}, status=status.HTTP_400_BAD_REQUEST)
+
 
         is_correct = selected_option.is_correct
         print('is corrent',is_correct)
-
-        if Submission.objects.filter(participant=participant, question=question).first():
-            return Response({'info' : 'You have already submitted this question'}, status=status.HTTP_400_BAD_REQUEST)
 
         submission = Submission.objects.create(
             participant=participant,
@@ -76,7 +96,11 @@ class SubmissionViewSet(ModelViewSet):
         )
 
         if is_correct:
-            participant.score += 1
+            print('total qeustion',contest.total_questions)
+            print('max point',contest.max_points)
+            points = (contest.max_points) / (contest.total_questions)
+            print('user ppoint', points)
+            participant.score += points
             participant.save()
 
         serializer = SubmissionSerializer(submission)
@@ -94,9 +118,22 @@ class SubmissionViewSet(ModelViewSet):
         
 
         participant.completed_at = now()
+        participant.time_taken = now() - participant.created_at
         participant.save()
+
+        update_leaderboard(participant.contest)
+
 
         return Response({'detail' : 'Contest completed successfully '}, status=status.HTTP_200_OK)
 
+
+def update_leaderboard(contest):
+    participants = Participant.objects.filter(contest=contest).first()
+    for rank, participant  in enumerate(participants, start=1):
+        Leaderboard.objects.update_or_create(
+            contest=contest,
+            user = participant.user,
+            defaults={'score' : participant.score, 'rank' : rank}
+        )
 
 
