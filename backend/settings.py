@@ -50,12 +50,15 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
 
+    'channels',
+
     'users',
     'user_profile',
     'course',
     'admin_app',
     'discussion',
     'contest',
+    'community',
     
 ]
 
@@ -258,6 +261,10 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 SITE_URL = 'http://localhost:9000/'
 STRIPE_SECRET_KEY=env('STRIPE_SECRET')
 
+
+
+
+ASGI_APPLICATION = 'backend.asgi.application'
 
 
 # DATA_UPLOAD_MAX_MEMORY_SIZE = int(env('DATA_UPLOAD_MAX_MEMORY_SIZE'))
