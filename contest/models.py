@@ -32,7 +32,7 @@ class Contest(BaseModel):
 
 
     def save(self, *args, **kwargs):
-        if not self.slug or Contest.objects.filter(ph=self.pk, name=self.name).exists() == False:
+        if not self.slug or Contest.objects.filter(pk=self.pk, name=self.name).exists() == False:
             base_slug = slugify(self.name)
             slug = base_slug
             num = 1

@@ -64,6 +64,7 @@ class ContestSerializer(serializers.ModelSerializer):
     participant_id = serializers.SerializerMethodField(read_only=True)
     category_id = serializers.CharField(write_only=True)
     is_participated = serializers.SerializerMethodField()
+    leaderboard = serializers.SerializerMethodField()
 
     class Meta:
         model = Contest
@@ -149,6 +150,11 @@ class ContestSerializer(serializers.ModelSerializer):
 
             return Participant.objects.filter(contest=obj, user=user).exists()
         return False    
+    
+
+    def get_leaderboard(self, obj):
+        leaderboard = Leaderboard.objects.filter(contest=obj).order_by('rank')
+        return LeaderboardSerializer(leaderboard, many=True).data
 
 
 class ParticipantSerializer(serializers.ModelSerializer):
@@ -164,6 +170,7 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
 
 class LeaderboardSerializer(serializers.ModelSerializer):
+    user = UserSerializers(read_only=True)
     class Meta:
         model = Leaderboard
         fields = '__all__'

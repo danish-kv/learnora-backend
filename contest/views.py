@@ -6,6 +6,7 @@ from .models import Contest, Question, Option, Participant, Leaderboard, Submiss
 from .serializers import ContestSerializer, QuestionSerializer, OptionSerializer, ParticipantSerializer, SubmissionSerializer
 from rest_framework.decorators import action
 from django.utils.timezone import now
+from django.shortcuts import get_object_or_404
 
 # Create your views here.
 
@@ -15,6 +16,11 @@ from django.utils.timezone import now
 class ContestViewSet(ModelViewSet):
     queryset = Contest.objects.all()
     serializer_class = ContestSerializer
+
+
+    # def get_queryset(self):
+    #     queryset = super().get_queryset()
+    #     return queryset.prefetch_related('leaderboards')
 
 
     def create(self, request, *args, **kwargs):
@@ -28,8 +34,8 @@ class ContestViewSet(ModelViewSet):
         contest = self.get_object()
         user = request.user
 
-        if contest.status != 'ongoing':
-            return Response({'error' : 'Contest is is not active for participation'}, status=status.HTTP_400_BAD_REQUEST)
+        # if contest.status != 'ongoing':
+        #     return Response({'error' : 'Contest is is not active for participation'}, status=status.HTTP_400_BAD_REQUEST)
         
 
         participant, created = Participant.objects.get_or_create(contest=contest, user=user)
@@ -61,13 +67,14 @@ class SubmissionViewSet(ModelViewSet):
         print('seleced option id : ',selected_option_id)
 
         try:
-            participant = Participant.objects.get(id=participant_id)
-            question = Question.objects.get(id=question_id)
-            selected_option = Option.objects.get(id=selected_option_id)
+            
+            participant = get_object_or_404(Participant, id=participant_id)
+            question = get_object_or_404(Question, id=question_id)
+            selected_option = get_object_or_404(Option, id=selected_option_id)
             print('participant :',participant)
             print('question :',question)
             print('seleced option : ',selected_option)
-        except (Participant.DoesNotExist, Question.DoesNotExist, Option.DoesNotExist):
+        except :
             return Response({'detail' : 'Invalid data'}, status=status.HTTP_400_BAD_REQUEST)
         
         contest = participant.contest
@@ -128,12 +135,14 @@ class SubmissionViewSet(ModelViewSet):
 
 
 def update_leaderboard(contest):
-    participants = Participant.objects.filter(contest=contest).first()
-    for rank, participant  in enumerate(participants, start=1):
+    print('leaderboard updated ....')
+    participants = Participant.objects.filter(contest=contest).order_by('-score')
+    for rank, participant in enumerate(participants, start=1):
         Leaderboard.objects.update_or_create(
             contest=contest,
-            user = participant.user,
-            defaults={'score' : participant.score, 'rank' : rank}
+            user=participant.user,
+            defaults={'score': participant.score, 'rank': rank}
         )
+
 
 
