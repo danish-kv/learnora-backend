@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
+    
+    'django_celery_beat',
+    'celery',
+
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
@@ -45,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+
     'users',
     'user_profile',
     'course',
@@ -247,6 +252,8 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE="Asia/Kolkata"
 
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
 SITE_URL = 'http://localhost:9000/'
 STRIPE_SECRET_KEY=env('STRIPE_SECRET')
