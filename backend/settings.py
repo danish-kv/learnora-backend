@@ -262,9 +262,18 @@ SITE_URL = 'http://localhost:9000/'
 STRIPE_SECRET_KEY=env('STRIPE_SECRET')
 
 
-
-
 ASGI_APPLICATION = 'backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
+
+
 
 
 # DATA_UPLOAD_MAX_MEMORY_SIZE = int(env('DATA_UPLOAD_MAX_MEMORY_SIZE'))
