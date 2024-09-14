@@ -45,10 +45,10 @@ class Community(BaseModel):
 class Message(BaseModel):
     community = models.ForeignKey(Community, on_delete=models.CASCADE, null=True, related_name='messages')
     sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, related_name='sent_messages')
-    contest = models.TextField(null=True)
+    content = models.TextField(null=True)
 
     def __str__(self) -> str:
-        return f'{self.sender.username} : {self.contest[:30]}...'
+        return f'{self.sender.username} : {self.content[:30]}...'
     
 
 class Thread(BaseModel):

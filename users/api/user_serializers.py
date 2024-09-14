@@ -79,11 +79,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token['role'] = 'admin'
         elif user.role == 'tutor':
             token['is_tutor'] = True
+            token['id'] = user.id
             token['is_verified'] = user.is_verified
             token['is_active'] = user.is_active 
             token['status'] = user.tutor_profile.status
         else:        
             token['user'] = user.username
+            token['id'] = user.id
             token['is_active'] = user.is_active 
             token['email'] = user.email
             token['is_verified'] = user.is_verified 
