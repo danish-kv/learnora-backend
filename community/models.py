@@ -35,6 +35,12 @@ class Community(BaseModel):
             self.participants.add(user)
         else:
             raise ValueError("Max participant limit reached")
+    
+    def exit_participant(self, user):
+        if user in self.participants.all():
+            self.participants.remove(user)
+        else:
+            raise ValueError("User is not a participant in this community")
 
 
     def __str__(self) -> str:
