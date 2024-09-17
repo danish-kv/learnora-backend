@@ -38,58 +38,41 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         text_data_json = json.loads(text_data)
         print(text_data_json)
         print('llllllllllllllllllllllll')
-        message = text_data_json.get('messages', None)
-        user_id = text_data_json.get('user', None)
+        message = text_data_json.get('message')
+        user_id = text_data_json.get('user')
 
 
-        # check = self.scope['user']
-        # print(check)
-
-        
-
-        # print(message)
-        # print(user_id)
 
         user = await self.get_user(user_id)
-        print('user : ',user)
-        if user:
-            print('yes user')
-        else:
-            print('nooooooooo')
-
-        if not message:
-            print("Message is empty or None!")
-
         
-        
-        if user and message: 
-            print('userum message um nd')
-
-            community = await self.get_community(self.slug)
-            if community and user.is_authenticated:
-                print('community user nddd')
-                await self.save_message(community, user, message)
-                print('message saved')
-            
-
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type': 'chat_message',
-                        'message': message,
-                        'user': user.username,
-                        'userID': user.id,
-                    }
-                )
-            else:
-                await self.send(text_data=json.dumps({
-                    'error': 'User not authenticated'
-                }))  
-        else:
-            
+        if not user or not message:
             await self.send(text_data=json.dumps({
-                'error': 'Invalid message or user'
+                'error' : 'Invalid message or user'
+            }))
+            return
+        
+        
+        print('userum message um nd')
+        community = await self.get_community(self.slug)
+        if community and user.is_authenticated:
+            print('community user nddd')
+            await self.save_message(community, user, message)
+            print('message saved')
+        
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message': message,
+                    'user': user.username,
+                    'userID': user.id,
+                }
+            )
+        else:
+            await self.send(text_data=json.dumps({
+            'error': 'User not authenticated or community not found'
             }))  
+  
 
 
     async def chat_message(self, event):
