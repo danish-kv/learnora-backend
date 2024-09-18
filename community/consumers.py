@@ -36,10 +36,12 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         print(f"Received data: {text_data}")
 
         text_data_json = json.loads(text_data)
-        print(text_data_json)
-        print('llllllllllllllllllllllll')
         message = text_data_json.get('message')
         user_id = text_data_json.get('user')
+        message_type = text_data_json.get('type')
+        print(message_type)
+        print(text_data_json)
+        print('llllllllllllllllllllllll')
 
 
 
@@ -51,28 +53,41 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
             }))
             return
         
-        
-        print('userum message um nd')
-        community = await self.get_community(self.slug)
-        if community and user.is_authenticated:
-            print('community user nddd')
-            await self.save_message(community, user, message)
-            print('message saved')
-        
+
+        if message_type == 'video_call':
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    'type': 'chat_message',
+                    'type': 'video_call',
                     'message': message,
                     'user': user.username,
                     'userID': user.id,
                 }
             )
-        else:
-            await self.send(text_data=json.dumps({
-            'error': 'User not authenticated or community not found'
-            }))  
-  
+
+        else:           
+        
+            print('userum message um nd')
+            community = await self.get_community(self.slug)
+            if community and user.is_authenticated:
+                print('community user nddd')
+                await self.save_message(community, user, message)
+                print('message saved')
+            
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'chat_message',
+                        'message': message,
+                        'user': user.username,
+                        'userID': user.id,
+                    }
+                )
+            else:
+                await self.send(text_data=json.dumps({
+                'error': 'User not authenticated or community not found'
+                }))  
+    
 
 
     async def chat_message(self, event):
@@ -86,6 +101,20 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
             'user' : user ,
             'userID' : userID 
         }))
+
+    async def video_call(self, event):
+        print('Video call event:', event)
+        message = event['message']
+        user = event['user']
+        userID = event['userID']
+
+        await self.send(text_data=json.dumps({
+            'type': 'video_call',  
+            'message': message,
+            'user': user,
+            'userID': userID
+        }))
+
     
     @database_sync_to_async
     def save_message(self, community, user, message):
