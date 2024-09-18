@@ -6,5 +6,5 @@ class CustomPagination(PageNumberPagination):
 
 
 class CustomMessagePagination(PageNumberPagination):
-    page_size = 30
+    page_size = 50
     max_page_size = 100

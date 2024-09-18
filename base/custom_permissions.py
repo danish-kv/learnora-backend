@@ -3,19 +3,17 @@ from rest_framework.permissions import BasePermission
 
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.is_superuser
-    
+        # Allow access if the user is authenticated and is a superuser (admin)
+        return request.user and request.user.is_authenticated and request.user.is_superuser
+
 
 class IsStudent(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.role == 'student'
+        # Allow access if the user is authenticated and their role is 'student'
+        return request.user and request.user.is_authenticated and getattr(request.user, 'role', None) == 'student'
 
 
 class IsTutor(BasePermission):
     def has_permission(self, request, view):
-        return request.user and request.user.role == 'tutor'
-    
-
-class IsTutorOrAdmin(BasePermission):
-    def has_permission(self, request, view):
-        return ( request.user and (request.user.is_superuser or request.user.role == 'tutor'))
+        # Allow access if the user is authenticated and their role is 'tutor'
+        return request.user and request.user.is_authenticated and getattr(request.user, 'role', None) == 'tutor'

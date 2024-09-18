@@ -97,7 +97,8 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         userID = event['userID']
 
         await self.send(text_data=json.dumps({
-            'message' : message,
+            'type': 'chat_message',  
+            'content' : message,
             'user' : user ,
             'userID' : userID 
         }))

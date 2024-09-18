@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 import re
 from datetime import datetime
 from .models import Tutor
-from base.custom_permissions import IsAdmin, IsStudent, IsTutor, IsTutorOrAdmin
+from base.custom_permissions import IsAdmin, IsStudent, IsTutor
 from django.db import transaction
 from django.core.mail import send_mail
 from django.conf import settings
