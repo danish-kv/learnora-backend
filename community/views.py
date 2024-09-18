@@ -8,6 +8,7 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
+from base.custom_pagination_class import CustomMessagePagination
 # Create your views here.
 
 
@@ -62,10 +63,13 @@ class JoinCommunityAPIView(APIView):
 
 class ChatHistoryAPIView(generics.ListAPIView):
     serializer_class = MessageSerializer
+    pagination_class = CustomMessagePagination
 
     def get_queryset(self):
         slug = self.kwargs['slug']
         community = Community.objects.get(slug=slug)
+        print(slug, community)
+        print(Message.objects.filter(community=community).order_by('-created_at'))
         return Message.objects.filter(community=community).order_by('created_at')
 
 
