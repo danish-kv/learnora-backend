@@ -3,6 +3,8 @@ from .models import Contest, Question, Option, Participant, Submission, Leaderbo
 from course.serializers import CategorySerializer
 from users.api.user_serializers import UserSerializers
 from course.models import Category
+from django.utils import timezone
+
 
 
 
@@ -54,7 +56,20 @@ class QuestionSerializer(serializers.ModelSerializer):
             Option.objects.create(question=question, **option)
 
         return question
+    
 
+    def update(self, instance, validated_data):
+        option_data = validated_data.pop('options', [])
+        instance.question_text = validated_data.get('question_text', instance.question_text)
+        instance.save()
+
+        instance.options.all().delete()
+
+        for option in option_data:
+            option.pop('question', None)  
+            Option.objects.create(question=instance, **option) 
+
+        return instance
 
 
 class ContestSerializer(serializers.ModelSerializer):
@@ -81,8 +96,13 @@ class ContestSerializer(serializers.ModelSerializer):
         if not name:
             raise serializers.ValidationError({'Name': 'Not a valid Name'})
 
-        if Contest.objects.filter(name=name).exists():
-            raise serializers.ValidationError({"Name" : "Contest name is already exists."})
+        if self.instance:
+            if Contest.objects.filter(name=name).exclude(id=self.instance.id).exists():
+                raise serializers.ValidationError({"Name" : "Contest name is already exists."})
+        else:
+            if Contest.objects.filter(name=name).exists():
+                raise serializers.ValidationError({"Name" : "Contest name is already exists."})
+
         
         if not description:
             raise serializers.ValidationError({'Description' : "Not a valid Description"})
@@ -129,8 +149,17 @@ class ContestSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Tutor id is not a valid ")
             
         validated_data.pop('category_id', None)
+        self.set_contest_status(validated_data)
 
         return super().create(validated_data)
+    
+
+    
+    def update(self, instance, validated_data):
+        self.set_contest_status(validated_data)
+        return super().update(instance, validated_data)
+    
+
     
     def get_participant_id(self, obj):
         request = self.context.get('request')
@@ -155,6 +184,19 @@ class ContestSerializer(serializers.ModelSerializer):
     def get_leaderboard(self, obj):
         leaderboard = Leaderboard.objects.filter(contest=obj).order_by('rank')
         return LeaderboardSerializer(leaderboard, many=True).data
+    
+    def set_contest_status(self, validated_data):
+        current_time = timezone.now()
+        start_time = validated_data.get('start_time')
+        end_time = validated_data.get('end_time')
+
+        if start_time > current_time:
+            validated_data['status'] = 'scheduled'
+        elif start_time <= current_time < end_time:
+            validated_data['status'] = 'ongoing'
+        else:
+            validated_data['status'] = 'finished'
+
 
 
 class ParticipantSerializer(serializers.ModelSerializer):

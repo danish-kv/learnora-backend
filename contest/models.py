@@ -26,7 +26,7 @@ class Contest(BaseModel):
     end_time = models.DateTimeField(null=True)
     difficulty_level = models.CharField(blank=True)
     time_limit = models.DurationField(null=True, blank=True, help_text="Time limit for contest participation (e.g., 00:10:00 for 10 minutes).")
-    status = models.CharField(choices=STATUS_CHOICES, max_length=10, default='scheduled')
+    status = models.CharField(choices=STATUS_CHOICES, max_length=10, null=True)
     participants = models.ManyToManyField(CustomUser, through='Participant', blank=True)
     is_active = models.BooleanField(default=False)
 

@@ -3,24 +3,38 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
 from .models import Contest, Question, Option, Participant, Leaderboard, Submission
-from .serializers import ContestSerializer, QuestionSerializer, OptionSerializer, ParticipantSerializer, SubmissionSerializer
-from rest_framework.decorators import action
+from .serializers import ContestSerializer, QuestionSerializer, OptionSerializer, ParticipantSerializer, SubmissionSerializer, LeaderboardSerializer
+from rest_framework.decorators import action, api_view
 from django.utils.timezone import now
 from django.shortcuts import get_object_or_404
-
+from django.db.models import Sum
 # Create your views here.
 
 
 
 
 class ContestViewSet(ModelViewSet):
-    queryset = Contest.objects.all()
+    queryset = Contest.objects.all().prefetch_related('leaderboards').order_by('-id')
     serializer_class = ContestSerializer
 
 
-    # def get_queryset(self):
-    #     queryset = super().get_queryset()
-    #     return queryset.prefetch_related('leaderboards')
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Contest.objects.all().order_by('-id')
+
+        if user.is_anonymous or not user.is_authenticated:
+            queryset = queryset.filter(is_active=True)
+
+        elif  user.is_staff or user.is_superuser:
+            queryset = queryset.all()
+
+        elif hasattr(user, 'role'):
+            if user.role == 'tutor':
+                queryset = queryset.all()
+            elif user.role == 'student':
+                queryset = queryset.exclude(is_active=False)
+
+        return queryset
 
 
     def create(self, request, *args, **kwargs):
@@ -46,6 +60,21 @@ class ContestViewSet(ModelViewSet):
         serializer = ParticipantSerializer(participant)
 
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['patch'], url_path='block')
+    def block_contest(self, request, pk=None):
+        try:
+            contest = self.get_object()
+            contest.is_active = not contest.is_active
+            contest.save()
+
+            action = 'blocked' if not contest.is_active else 'unblocked'
+
+            return Response({'message': f'Contest has been {action}.', 'is_active': contest.is_active}, status=status.HTTP_200_OK)
+        except Contest.DoesNotExist:
+            return Response({'error': 'Contest not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+    
 
 
 
@@ -146,3 +175,10 @@ def update_leaderboard(contest):
 
 
 
+@api_view(['GET'])
+def global_leaderboard(request):
+    leaderboard = Leaderboard.objects.values('user__username').annotate(
+        total_score = Sum('score')
+    ).order_by('-total_score')[:10]
+
+    return Response(leaderboard)
