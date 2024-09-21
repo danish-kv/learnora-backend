@@ -132,3 +132,33 @@ class UserStatusSerializer(ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['is_active']
+
+
+
+
+class ChangePasswordSerializer(serializers.ModelSerializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+    confirm_password = serializers.CharField(required=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['old_password', 'new_password', 'confirm_password']
+
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+
+        if not user.check_password(attrs['old_password']):
+            raise serializers.ValidationError({'old_password' : 'Old password is incorrect'})
+        
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({'confirm_password' : "New Password do not match"})
+        
+        return attrs    
+    
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()

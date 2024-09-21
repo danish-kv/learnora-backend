@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import RegisterView, OTPVerification, CustomTokenObtainPairView, ResendOtpView, ForgetPassword, Logout, GoogleSignInView, UserStatusUpdate, StudentProfileViewSet
+from .views import RegisterView, OTPVerification, CustomTokenObtainPairView, ResendOtpView, ForgetPassword, Logout, GoogleSignInView, UserStatusUpdate, StudentProfileViewSet, ChangePassword
 from rest_framework_simplejwt.views import TokenRefreshView
 
 router = DefaultRouter()
@@ -18,4 +18,5 @@ urlpatterns = [
     path('logout/', Logout.as_view(), name='logout'),
     path('google/', GoogleSignInView.as_view(), name='google'),
     path('user/<int:pk>/status/', UserStatusUpdate.as_view(), name='change_status'),
+    path('change-password/', ChangePassword.as_view(), name='change-password')
 ]

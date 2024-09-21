@@ -3,13 +3,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
-from .api.user_serializers import UserSerializers, CustomTokenObtainPairSerializer, UserStatusSerializer
+from .api.user_serializers import UserSerializers, CustomTokenObtainPairSerializer, UserStatusSerializer, ChangePasswordSerializer
 from .api.google_serializer import GoogleSignInSerializer
 from .signal import generate_otp, send_otp_email
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .utils import register_social_user
 from django.core.validators import EmailValidator
 from base.custom_permissions import IsAdmin, IsStudent
+from rest_framework.views import APIView
 
 
 
@@ -172,3 +173,15 @@ class StudentProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         return CustomUser.objects.filter(id=user.id)
+    
+
+class ChangePassword(APIView):
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        serializer = ChangePasswordSerializer(data=request.data, context={'request' : request})
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'detail' : 'Password Updated Successfully'}, status=status.HTTP_200_OK)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
