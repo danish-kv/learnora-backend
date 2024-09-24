@@ -16,6 +16,9 @@ from base.custom_permissions import IsAdmin, IsStudent, IsTutor
 from django.db import transaction
 from django.core.mail import send_mail
 from django.conf import settings
+from rest_framework import viewsets
+from rest_framework import views
+from .serializers import SkillSerializer, EducationSerializer, ExperienceSerializer
 
 # Create your views here.
 
@@ -23,6 +26,7 @@ from django.conf import settings
 
 
 class TutorProfile(APIView):
+    
 
     def post(self, request):
         
@@ -176,7 +180,7 @@ class TutorProfile(APIView):
 class TutorDetails(generics.RetrieveUpdateAPIView):
     queryset = Tutor.objects.all()
     serializer_class = TutorSerializer
-    permission_classes = [IsAdmin]
+    permission_classes = [IsAdmin | IsTutor]
 
     def update(self, request, *args, **kwargs):
         
@@ -209,3 +213,73 @@ class TutorDetails(generics.RetrieveUpdateAPIView):
             [tutor.user.email],  
             fail_silently=False,
         )
+    
+
+class MyProfileViewSets(viewsets.ModelViewSet):
+    queryset = Tutor.objects.all()
+    serializer_class = TutorSerializer
+    permission_classes = [IsTutor]
+
+    def get_queryset(self):
+        return Tutor.objects.filter(user=self.request.user)
+    
+    def update(self, request, *args, **kwargs):
+        print(request.data)
+        return super().update(request, *args, **kwargs)
+    
+
+
+
+
+
+
+class SkillEditView(APIView):
+    def patch(self, request,id, *args, **kwargs):
+        print(request.data)
+        skills_data = request.data.get('skills', [])
+        tutor = request.user.tutor_profile
+        for skill in skills_data:
+            Skill.objects.filter(tutor=tutor, id=skill['id']).update(skill_name=skill['skill_name'])
+
+        return Response({'success': 'Skills updated'})
+
+        
+
+
+class EducationEditView(views.APIView):
+    def patch(self, request,id, *args, **kwargs):
+        print(request.data)
+
+        try:
+            edu = Education.objects.get(id=id)
+        except Education.DoesNotExist:
+            return Response({'error' : 'Education not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = EducationSerializer(edu, data=request.data, partial=False)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+class ExperienceEditView(views.APIView):
+    def patch(self, request,id, *args, **kwargs):
+        print(request.data)
+
+        try:
+            edu = Experience.objects.get(id=id)
+        except Experience.DoesNotExist:
+            return Response({'error' : 'Education not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        serializer = ExperienceSerializer(edu, data=request.data, partial=False)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+

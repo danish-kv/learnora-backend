@@ -16,18 +16,18 @@ def parse_date(date_str):
 class EducationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Education
-        fields = ['highest_qualification', 'name_of_institution', 'year_of_qualification']
+        fields = ['id', 'highest_qualification', 'name_of_institution', 'year_of_qualification']
 
 class ExperienceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Experience
-        fields = ['company_name', 'position', 'start_date', 'end_date']
+        fields = ['id', 'company_name', 'position', 'start_date', 'end_date']
 
 
 class SkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = Skill
-        fields = ['skill_name']
+        fields = ['id', 'skill_name']
 
 
 
@@ -36,7 +36,7 @@ class TutorSerializer(serializers.ModelSerializer):
     experiences = serializers.ListField(child=serializers.JSONField(), required=False, write_only=True)
     skills = serializers.ListField(child=serializers.CharField(), required=False, write_only=True)
     userId = serializers.CharField(write_only=True)
-    user = UserSerializers(read_only=True) 
+    user = UserSerializers(required=False) 
     total_courses = serializers.SerializerMethodField()
 
     class Meta:
@@ -99,3 +99,17 @@ class TutorSerializer(serializers.ModelSerializer):
         representation['experiences'] = ExperienceSerializer(instance.experiences.all(), many=True).data
         representation['skills'] = SkillSerializer(instance.skills.all(), many=True).data
         return representation
+
+    def update(self, instance, validated_data):
+        print(validated_data)
+        user_data = validated_data.pop('user', None)
+
+        instance = super().update(instance, validated_data)
+        
+        if user_data:
+            user = instance.user
+            for key, value in user_data.items():
+                setattr(user, key, value)
+            user.save()
+        return instance
+    
