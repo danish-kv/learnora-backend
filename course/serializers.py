@@ -93,14 +93,15 @@ class ModuleSerializer(ModelSerializer):
 
 
 
-
-class StudentCourseProgressSerializer(ModelSerializer):
+class CourseSimpleSerializer(ModelSerializer):
     class Meta:
-        model=StudentCourseProgress
-        fields = '__all__'
+        model = Course
+        fields = ['id', 'title']  
+
 
 class ReviewSerializer(ModelSerializer):
     user = UserSerializers(read_only = True)
+    course = CourseSimpleSerializer(read_only=True)
     is_my_review = serializers.SerializerMethodField()
     class Meta:
         model = Review
@@ -184,3 +185,26 @@ class NotesSerializer(ModelSerializer):
 
     def get_module(self, obj):
         return ModuleSerializer(obj.module, context=self.context).data
+    
+
+
+
+
+
+
+class TransactionSerializer(serializers.ModelSerializer):
+    user = UserSerializers(read_only=True)
+    class Meta:
+        model = Transaction
+        fields = '__all__'
+
+
+
+class StudentCourseProgressSerializer(ModelSerializer):
+    course = CourseSerializer(read_only=True)  
+    student = UserSerializers(read_only=True)
+    
+    class Meta:
+        model = StudentCourseProgress
+        fields = '__all__'
+
