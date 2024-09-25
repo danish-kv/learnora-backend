@@ -23,11 +23,6 @@ class CategorySerializer(ModelSerializer):
         return value
 
 
-class NotesSerializer(ModelSerializer):
-    class Meta:
-        model = Note
-        fields = "__all__"
-
 
 class ModuleSerializer(ModelSerializer):
     student_notes = serializers.SerializerMethodField()
@@ -59,23 +54,25 @@ class ModuleSerializer(ModelSerializer):
         return value
     
     def get_student_notes(self, obj):
-        user = self.context['request'].user
-        if user.is_authenticated:
-            notes = Note.objects.filter(module=obj, user=user)
-            return NotesSerializer(notes, many=True).data
-        
+        request = self.context.get('request', None)
+        if request and request.user.is_authenticated:
+            notes = Note.objects.filter(module=obj, user=request.user)
+            return [{"id": note.id, "content": note.content , 'timeline' : note.timeline} for note in notes]
+        return None
+
     def get_is_watched(self, obj):
-        user = self.context['request'].user
-        if user.is_authenticated:
-            progress =  StudentCourseProgress.objects.filter(student=user, course=obj.course).first()
+        request = self.context.get('request', None)
+        if request and request.user.is_authenticated:
+            progress = StudentCourseProgress.objects.filter(student=request.user, course=obj.course).first()
             return obj in progress.watched_modules.all() if progress else False
         return False
-    
+
     def get_is_liked(self, obj):
-        user = self.context['request'].user
-        if user.is_authenticated:
-            progress = StudentCourseProgress.objects.filter(student=user, course=obj.course).first()
+        request = self.context.get('request', None)
+        if request and request.user.is_authenticated:
+            progress = StudentCourseProgress.objects.filter(student=request.user, course=obj.course).first()
             return obj in progress.liked_modules.all() if progress else False
+
         
     
     def update(self, instance, validated_data):
@@ -175,3 +172,15 @@ class CourseSerializer(ModelSerializer):
 
         instance.save()
         return instance
+
+
+
+class NotesSerializer(ModelSerializer):
+    module = serializers.SerializerMethodField()  
+
+    class Meta:
+        model = Note
+        fields = "__all__"
+
+    def get_module(self, obj):
+        return ModuleSerializer(obj.module, context=self.context).data

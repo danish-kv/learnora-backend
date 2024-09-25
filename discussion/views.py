@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.viewsets import ModelViewSet
 from .models import Discussion, Comment
 from base.custom_permissions import IsStudent
+from rest_framework.permissions import AllowAny
 # Create your views here.
 
 
@@ -36,7 +37,7 @@ def create_discussion(request):
 class DiscussionViewSet(ModelViewSet):
     queryset = Discussion.objects.all().prefetch_related('user').prefetch_related('commented_discussion')
     serializer_class = DiscussionSerializer
-    permission_classes = [IsStudent]
+    permission_classes = [AllowAny]
 
     @action(detail=True, methods=['post'])
     def upvote(self, request, pk=None):

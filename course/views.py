@@ -380,3 +380,7 @@ class NotesViewSet(ModelViewSet):
         return Note.objects.filter(user=self.request.user)
 
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
