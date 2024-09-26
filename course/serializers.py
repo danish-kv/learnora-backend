@@ -108,8 +108,10 @@ class ReviewSerializer(ModelSerializer):
         fields = '__all__'
 
     def get_is_my_review(self, obj):
-        user = self.context['request'].user
-        return obj.user == user
+        request = self.context.get('request', None)  
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            return obj.user == request.user
+        return False 
     
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user

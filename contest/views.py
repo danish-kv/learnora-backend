@@ -8,6 +8,7 @@ from rest_framework.decorators import action, api_view
 from django.utils.timezone import now
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
+from rest_framework.permissions import AllowAny
 # Create your views here.
 
 
@@ -16,6 +17,7 @@ from django.db.models import Sum
 class ContestViewSet(ModelViewSet):
     queryset = Contest.objects.all().prefetch_related('leaderboards').order_by('-id')
     serializer_class = ContestSerializer
+    permission_classes = [AllowAny]
 
 
     def get_queryset(self):
@@ -37,19 +39,14 @@ class ContestViewSet(ModelViewSet):
         return queryset
 
 
-    def create(self, request, *args, **kwargs):
-        print('data in request data ==',request.data)
-        return super().create(request, *args, **kwargs)
-
-
 
     @action(detail=True, methods=['post'], url_path='participate')
     def participate(self, request, pk=None):
         contest = self.get_object()
         user = request.user
 
-        # if contest.status != 'ongoing':
-        #     return Response({'error' : 'Contest is is not active for participation'}, status=status.HTTP_400_BAD_REQUEST)
+        if contest.status != 'ongoing':
+            return Response({'error' : 'Contest is is not active for participation'}, status=status.HTTP_400_BAD_REQUEST)
         
 
         participant, created = Participant.objects.get_or_create(contest=contest, user=user)
@@ -132,12 +129,14 @@ class SubmissionViewSet(ModelViewSet):
         )
 
         if is_correct:
+            print('eeeeeeeeeeeeeeeeeeeeee')
             print('total qeustion',contest.total_questions)
             print('max point',contest.max_points)
             points = (contest.max_points) / (contest.total_questions)
             print('user ppoint', points)
             participant.score += points
             participant.save()
+            print('points saaved')
 
         serializer = SubmissionSerializer(submission)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -167,6 +166,7 @@ def update_leaderboard(contest):
     print('leaderboard updated ....')
     participants = Participant.objects.filter(contest=contest).order_by('-score')
     for rank, participant in enumerate(participants, start=1):
+        print('Posints ==== ',participant.score)
         Leaderboard.objects.update_or_create(
             contest=contest,
             user=participant.user,

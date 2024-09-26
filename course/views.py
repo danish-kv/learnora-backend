@@ -84,12 +84,7 @@ class CourseViewSet(ModelViewSet):
             if user.role == 'tutor':
                 queryset = queryset.all()
             elif user.role == 'student':
-                queryset = queryset.filter( Q(status='Approved', is_active=True))
-                # purchased_courses = Course.objects.filter(student_progress__student=user)
-                # queryset = queryset.filter(
-                #     Q(status='Approved', is_active=True) |
-                #     Q(id__in=purchased_courses.values('id'))
-                # ).distinct()
+                queryset = queryset.filter( Q(status='Approved', is_active=True, tutor__user__is_active=True))
         
         category_query = self.request.query_params.get('category', None)
         if category_query:
@@ -191,17 +186,27 @@ class EditModuleView(generics.RetrieveUpdateDestroyAPIView):
         module = get_object_or_404(Module, pk=pk)
         student = request.user
         module.views_count += 1
+        print('view count updated...')
+        module.save()
 
         course_progress, created = StudentCourseProgress.objects.get_or_create(
             student=student,
             course=module.course
         )
+        course_progress.progress = "Ongoing"
 
         if not course_progress.watched_modules.filter(id=module.id).exists():
             course_progress.watched_modules.add(module)
             course_progress.watch_time += module.duration
             course_progress.last_accessed_module = module
-            course_progress.save()
+        
+        total_module = module.course.modules.count()
+        watched_modules_count = course_progress.watched_modules.count()
+        if total_module == watched_modules_count:
+            print('completed course progress')
+            course_progress.progress = 'Completed'
+        print('changeedd')
+        course_progress.save()
 
         return Response({'message' : 'Marked watched module'}, status=status.HTTP_200_OK)
 
