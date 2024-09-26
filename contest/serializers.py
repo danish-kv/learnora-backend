@@ -213,6 +213,15 @@ class SubmissionSerializer(serializers.ModelSerializer):
 
 class LeaderboardSerializer(serializers.ModelSerializer):
     user = UserSerializers(read_only=True)
+    contest_data = serializers.SerializerMethodField()
     class Meta:
         model = Leaderboard
         fields = '__all__'
+
+    def contest_data(self, obj):
+        contest = obj.contest
+        return {
+            "id" : contest.id,
+            "name" : contest.name
+
+        }

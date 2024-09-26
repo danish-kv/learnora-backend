@@ -19,13 +19,12 @@ from django.conf import settings
 from rest_framework import viewsets
 from rest_framework import views
 from .serializers import SkillSerializer, EducationSerializer, ExperienceSerializer
-
-
 from course.models import Course, StudentCourseProgress, Transaction, Module, Review
-from django.db.models import Sum
+from django.db.models import Sum, Count
 from course.serializers import TransactionSerializer, ReviewSerializer, StudentCourseProgressSerializer
 from contest.models import Leaderboard
 from contest.serializers import LeaderboardSerializer
+from django.db.models.functions import TruncMonth
 # Create your views here.
 
 
@@ -314,7 +313,14 @@ class TutorDashboardView(viewsets.ViewSet):
         recent_contest = Leaderboard.objects.filter(contest__tutor=tutor).order_by('created_at')[:5]
         recent_contest_serializer = LeaderboardSerializer(recent_contest, many=True) 
 
+        monthly_enrollments = ( StudentCourseProgress.objects.annotate(month=TruncMonth('created_at')).values('month').annotate(count=Count('id')).order_by('month'))
 
+        enrollment_data = [0] * 12
+        for entry in monthly_enrollments:
+            month = entry['month'].month - 1
+            enrollment_data[month] = entry['count']
+
+            
         response_data = {
             "stats": {
                 "total_courses": total_course,
@@ -331,6 +337,7 @@ class TutorDashboardView(viewsets.ViewSet):
             "recent_reviews": review_data_serializer.data,
             "recent_enrollments": recent_enrollment_serializer.data,
             "recent_contests": recent_contest_serializer.data,
+            "enrollment_data" : enrollment_data
         }
 
 

@@ -1,10 +1,11 @@
 from django.urls import path, include
-from .views import StudentManageView, RequestedCourses, RequestedCategory
+from .views import StudentManageView, RequestedCourses, RequestedCategory, AdminDashboardView   
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'requested-courses', RequestedCourses, basename='requested-course'),
 router.register(r'requested-category', RequestedCategory, basename='requested-category'),
+router.register(r'admin-dashboard', AdminDashboardView, basename='admin-dashboard'),
 
 
 urlpatterns = [
