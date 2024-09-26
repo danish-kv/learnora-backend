@@ -113,3 +113,10 @@ class TutorSerializer(serializers.ModelSerializer):
             user.save()
         return instance
     
+
+
+class CourseSalesSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+    course_title = serializers.CharField(source='course__title')
+    total_sales = serializers.IntegerField()
+    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2) 

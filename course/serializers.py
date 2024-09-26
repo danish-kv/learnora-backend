@@ -96,7 +96,7 @@ class ModuleSerializer(ModelSerializer):
 class CourseSimpleSerializer(ModelSerializer):
     class Meta:
         model = Course
-        fields = ['id', 'title']  
+        fields = ['id', 'title', 'price', 'rental_price']  
 
 
 class ReviewSerializer(ModelSerializer):
@@ -194,6 +194,7 @@ class NotesSerializer(ModelSerializer):
 
 class TransactionSerializer(serializers.ModelSerializer):
     user = UserSerializers(read_only=True)
+    course = CourseSimpleSerializer(read_only=True)
     class Meta:
         model = Transaction
         fields = '__all__'

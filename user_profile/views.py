@@ -18,7 +18,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework import viewsets
 from rest_framework import views
-from .serializers import SkillSerializer, EducationSerializer, ExperienceSerializer
+from .serializers import SkillSerializer, EducationSerializer, ExperienceSerializer, CourseSalesSerializer
 from course.models import Course, StudentCourseProgress, Transaction, Module, Review
 from django.db.models import Sum, Count
 from course.serializers import TransactionSerializer, ReviewSerializer, StudentCourseProgressSerializer
@@ -291,6 +291,7 @@ class TutorDashboardView(viewsets.ViewSet):
 
     def list(self, request):
         tutor = request.user.tutor_profile
+
         total_course = Course.objects.filter(tutor=tutor).count()
         enrolled_course = StudentCourseProgress.objects.filter(course__tutor=tutor).count()
         total_amount = Transaction.objects.filter(course__tutor=tutor).aggregate(total=Sum('amount'))['total'] or 0
@@ -320,7 +321,7 @@ class TutorDashboardView(viewsets.ViewSet):
             month = entry['month'].month - 1
             enrollment_data[month] = entry['count']
 
-            
+
         response_data = {
             "stats": {
                 "total_courses": total_course,
@@ -344,3 +345,37 @@ class TutorDashboardView(viewsets.ViewSet):
         return Response(response_data, status=status.HTTP_200_OK)
 
 
+class TutorSalesReport(viewsets.ViewSet):
+    def list(self, request):
+        tutor = request.user.tutor_profile
+
+        start_date = request.query_params.get('start')
+        end_date = request.query_params.get('end')
+
+        print(start_date, end_date)
+
+        if start_date and end_date:
+            try:
+                start_date = datetime.fromisoformat(start_date.replace('Z', ''))
+                end_date = datetime.fromisoformat(end_date.replace('Z', ''))
+
+                sales_report_data = Transaction.objects.filter(
+                    course__tutor=tutor,
+                    created_at__range=(start_date, end_date)
+                ).values(
+                    'course_id',
+                    'course__title'
+                ).annotate(
+                    total_sales=Count('id'),
+                    total_amount=Sum('amount'))
+                                
+                sales_report =  CourseSalesSerializer(sales_report_data, many=True)
+
+                
+
+                return Response({"sales": sales_report.data}, status=status.HTTP_200_OK)
+            except ValueError:
+                return Response({"error": "Invalid date format"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "Missing 'start' or 'end' date"}, status=status.HTTP_400_BAD_REQUEST)
+            

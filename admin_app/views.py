@@ -15,6 +15,8 @@ from contest.models import Leaderboard
 from contest.serializers import LeaderboardSerializer
 from django.db.models.functions import TruncMonth
 
+from datetime import datetime
+from user_profile.serializers import CourseSalesSerializer
 # Create your views here.
 
 class StudentManageView(APIView):
@@ -119,3 +121,38 @@ class AdminDashboardView(ViewSet):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+
+
+class AdminSalesReport(ViewSet):
+    def list(self, request):
+        start_date = request.query_params.get('start')
+        end_date = request.query_params.get('end')
+
+        print(start_date, end_date)
+
+        if start_date and end_date:
+            try:
+                start_date = datetime.fromisoformat(start_date.replace('Z', ''))
+                end_date = datetime.fromisoformat(end_date.replace('Z', ''))
+
+                sales_report_data = Transaction.objects.filter(
+                    created_at__range=(start_date, end_date)
+                ).values(
+                    'course_id',
+                    'course__title'
+                ).annotate(
+                    total_sales=Count('id'),
+                    total_amount=Sum('amount'))
+                                
+                sales_report =  CourseSalesSerializer(sales_report_data, many=True)
+
+                
+
+                return Response({"sales": sales_report.data}, status=status.HTTP_200_OK)
+            except ValueError:
+                return Response({"error": "Invalid date format"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({"error": "Missing 'start' or 'end' date"}, status=status.HTTP_400_BAD_REQUEST)
+            
