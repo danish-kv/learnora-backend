@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
 
     'channels',
+    'storages',
 
     'users',
     'user_profile',
@@ -91,20 +92,20 @@ SIMPLE_JWT = {
 
 
 
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.UserRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'user': '1000/day',  # Example rate, customize as per your need
-    }
-}
+# REST_FRAMEWORK = {
+#     # 'DEFAULT_PERMISSION_CLASSES': [
+#     #     'rest_framework.permissions.IsAuthenticated',
+#     # ],
+#     # 'DEFAULT_AUTHENTICATION_CLASSES': (
+#     #     'rest_framework_simplejwt.authentication.JWTAuthentication',
+#     # ),
+#     'DEFAULT_THROTTLE_CLASSES': [
+#         'rest_framework.throttling.UserRateThrottle',
+#     ],
+#     'DEFAULT_THROTTLE_RATES': {
+#         'user': '1000/day',  # Example rate, customize as per your need
+#     }
+# }
 
 
 
@@ -191,9 +192,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -248,12 +246,23 @@ GOOGLE_CLIENT_SECRET=env('GOOGLE_SECRET')
 SOCIAL_AUTH_PASSWORD=env('SOCIAL_PASSWORD')
 
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE="Asia/Kolkata"
+
+
+
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_URL = 'amqp://localhost'
+CELERY_RESULT_BACKEND = 'rpc://'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE="Asia/Kolkata"
+CELERY_TIMEZONE = "Asia/Kolkata"
+
 
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
@@ -276,11 +285,34 @@ CHANNEL_LAYERS = {
 
 
 
-# DATA_UPLOAD_MAX_MEMORY_SIZE = int(env('DATA_UPLOAD_MAX_MEMORY_SIZE'))
 
-# AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
-# AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-# AWS_STORAGE_BUCKET_NAME = env('AWS_STORAGE_BUCKET_NAME')
-# AWS_S3_REGION_NAME = env('AWS_S3_REGION_NAME')
-# AWS_S3_FILE_OVERWRITE = True
-# AWS_S3_CUSTOM_DOMAIN = env('AWS_S3_CUSTOM_DOMAIN') % AWS_STORAGE_BUCKET_NAME
+
+STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
+
+
+AWS_ACCESS_KEY_ID=env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY=env('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME=env("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME='ap-south-1'
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+AWS_S3_VERIFY = True
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+STATICFILES_STORAGE = "storages.backends.s3boto3.S3StaticStorage"
+
+
+# STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+# MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+
+
+STATIC_URL = 'static/'
+MEDIA_URL = 'media/'
+
+
+
+
+

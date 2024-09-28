@@ -217,7 +217,7 @@ class LeaderboardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Leaderboard
         fields = '__all__'
-
+        depth = 1
     def contest_data(self, obj):
         contest = obj.contest
         return {
