@@ -65,3 +65,20 @@ class Thread(BaseModel):
     def __str__(self) -> str:
         return f"{self.community.name} : {self.name}"
     
+
+
+class Notification(BaseModel):
+    NOTIFICATION_TYPES = (
+        ('message', 'Message'),
+        ('new_course', 'New Course')
+    )
+    
+    recipient = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications')
+    community = models.ForeignKey(Community, on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    message = models.CharField(max_length=100, null=True, blank=True)
+    notification_type = models.CharField(choices=NOTIFICATION_TYPES, max_length=20)
+    link = models.URLField(null=True, blank=True) 
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Notification for {self.recipient.username} - {self.notification_type}"

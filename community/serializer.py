@@ -1,4 +1,4 @@
-from .models import Community, Message, Thread
+from .models import Community, Message, Thread, Notification
 from rest_framework import serializers
 from users.api.user_serializers import UserSerializers
 
@@ -61,4 +61,10 @@ class JoinCommunitySerializer(serializers.ModelSerializer):
             user = request.user
             community.add_participant(user)
 
+        
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
         

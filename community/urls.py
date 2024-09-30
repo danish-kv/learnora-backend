@@ -1,9 +1,10 @@
 from django.urls import path, include
-from .views import CommunityCreateAPIView, ListCommunity, JoinCommunityAPIView, ChatHistoryAPIView, exit_community
+from .views import CommunityCreateAPIView, ListCommunity, JoinCommunityAPIView, ChatHistoryAPIView, exit_community, NotificationViewSet
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(f'list-community', ListCommunity, basename='list-community')
+router.register(f'notification', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('', include(router.urls)),

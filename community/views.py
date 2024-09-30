@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from .serializer import CommunitySerializer, MessageSerializer, CreateCommunitySerializer, JoinCommunitySerializer
-from .models import Community, Message
+from .serializer import CommunitySerializer, MessageSerializer, CreateCommunitySerializer, JoinCommunitySerializer, NotificationSerializer
+from .models import Community, Message, Notification
 from rest_framework import status, generics, views
 from rest_framework.response import Response
 from base.custom_permissions import IsTutor, IsStudent
@@ -85,3 +85,19 @@ def exit_community(request, slug):
         return Response({'message' : 'Successfully exited from community'}, status=status.HTTP_200_OK)
     except ValueError as e:
         return Response({'error' : str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return self.queryset.filter(recipient=self.request.user)
+
+    def partial_update(self, request, *args, **kwargs):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'notification marked as read'}, status=status.HTTP_200_OK)
