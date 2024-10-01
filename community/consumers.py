@@ -84,14 +84,16 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
+                print('community ====',community)
                 members = await self.get_community_members(community)
+                print('memebner ====',members)
                 notifications = [
                     Notification(
                         recipient=member,
                         community=community,
                         message=f'New message from {user.username}',
                         notification_type='new_message',
-                        link=f'/community/{community.slug}/chat'
+                        link=f'/community/{community.slug}'
                     ) for member in members if member.id != user.id
                 ]
                 await self.create_notifications(notifications)
@@ -110,16 +112,26 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
                 'error': 'User not authenticated or community not found'
                 }))  
     
-
     async def send_member_notification(self, message, community, member):
-        notification_data = {
-            'type' : 'new_message',
-            'message' : message,
-            'community' : community,
-            'link' : f'/community/{community.slug}/chat'
-        }
+        notification = Notification(
+            recipient=member,
+            community=community,
+            message=message,
+            notification_type='new_message',
+            link=f'/community/{community.slug}'
+        )
 
-        await self.create_notification(message, member, "new_message", community)
+        print('notify sending stage....')
+        
+        
+        await self.create_notifications([notification])  
+
+        notification_data = {
+            'type': 'new_message',
+            'message': message,
+            'community': community.slug,  
+            'link': f'/community/{community.slug}'
+        }
 
         await self.channel_layer.group_send(
             f'user_{member.id}',
@@ -179,46 +191,56 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
         except Community.DoesNotExist:
             return None
         
+        
     @database_sync_to_async
     def get_user(self, user_id):
         print('getting user')
         try:
             return CustomUser.objects.get(id=user_id)
         except Exception as e:
-            print('User is not found',e )
+            print('User not found:', e)
             return None
         
     
 
     @database_sync_to_async
     def get_community_members(self, community):
-        return community.participants.all()
+        try:
+            print('Fetching participants')
+            return list(community.participants.all())  
+        except Exception as e:
+            print(f'Error fetching participants: {e}')
+            return []
+    
+
+    
+    @database_sync_to_async
+    def create_notifications(self, notifications):
+        print('create notification ==', notifications)
+        Notification.objects.bulk_create(notifications)
+
+
+
 
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.user = self.scope['user']
+        print('connecting..........', self.scope['url_route'])
+        self.userID = self.scope['url_route']['kwargs']['user_id']
+        self.group_name = f"user_{self.userID}"  
 
-        if self.user.is_authenticated:
-            self.group_name = f'user_{self.user.id}'
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
 
-            await self.channel_layer.group_add(self.group_name, self.channel_name)
-            
-            await self.accept()
-        else:
-            await self.close()
+        
+
 
     async def disconnect(self, code):
-        if self.user.is_authenticated:
-            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
             
         
 
     async def send_notification(self, event):
         await self.send(text_data=json.dumps(event['data']))
 
-
-@database_sync_to_async
-def create_notifications(notifications):
-    Notification.objects.bulk_create(notifications)
