@@ -25,18 +25,19 @@ class ContestViewSet(ModelViewSet):
         queryset = Contest.objects.all().order_by('-id')
 
         if user.is_anonymous or not user.is_authenticated:
-            queryset = queryset.filter(is_active=True)
+            queryset = queryset.all()
 
-        elif  user.is_staff or user.is_superuser:
+        elif user.is_staff or user.is_superuser:
             queryset = queryset.all()
 
         elif hasattr(user, 'role'):
             if user.role == 'tutor':
                 queryset = queryset.all()
             elif user.role == 'student':
-                queryset = queryset.exclude(is_active=False)
+                queryset = queryset.all()
 
         return queryset
+
 
 
 
@@ -46,7 +47,7 @@ class ContestViewSet(ModelViewSet):
         user = request.user
 
         if contest.status != 'ongoing':
-            return Response({'error' : 'Contest is is not active for participation'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error' : 'Contest is not active for participation'}, status=status.HTTP_400_BAD_REQUEST)
         
 
         participant, created = Participant.objects.get_or_create(contest=contest, user=user)
@@ -58,18 +59,7 @@ class ContestViewSet(ModelViewSet):
 
         return Response(serializer.data)
     
-    @action(detail=True, methods=['patch'], url_path='block')
-    def block_contest(self, request, pk=None):
-        try:
-            contest = self.get_object()
-            contest.is_active = not contest.is_active
-            contest.save()
-
-            action = 'blocked' if not contest.is_active else 'unblocked'
-
-            return Response({'message': f'Contest has been {action}.', 'is_active': contest.is_active}, status=status.HTTP_200_OK)
-        except Contest.DoesNotExist:
-            return Response({'error': 'Contest not found'}, status=status.HTTP_404_NOT_FOUND)
+   
         
     
 
