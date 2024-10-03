@@ -163,22 +163,28 @@ class ContestSerializer(serializers.ModelSerializer):
     
     def get_participant_id(self, obj):
         request = self.context.get('request')
+        
         if request and hasattr(request, 'user'):
             user = request.user
-            try:
-                participant  = Participant.objects.get(user=user, contest=obj)
-                return participant.id
-            except Participant.DoesNotExist:
+            if user.is_authenticated:
+                try:
+                    participant = Participant.objects.get(user=user, contest=obj)
+                    return participant.id
+                except Participant.DoesNotExist:
+                    return None
+            else:
                 return None
         return None
+
     
     def get_is_participated(self, obj):
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             user = request.user
-
-            return Participant.objects.filter(contest=obj, user=user).exists()
-        return False    
+            if user.is_authenticated:
+                return Participant.objects.filter(contest=obj, user=user).exists()
+        return False
+  
     
 
     def get_leaderboard(self, obj):

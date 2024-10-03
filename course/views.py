@@ -21,7 +21,7 @@ from base.custom_pagination_class import CustomPagination
 from base.custom_permissions import IsAdmin, IsStudent, IsTutor
 from rest_framework.permissions import AllowAny
 from django.db.models import Q
-
+from django.core.cache import cache
 # Create your views here.
 
 
@@ -37,6 +37,12 @@ class CategoryViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        cache_key = f'categories_{user.id if user.is_authenticated else 'public'}'
+        cached_category = cache.get(cache_key)
+
+        if cached_category is not None:
+            return cached_category
+
         queryset = Category.objects.all().order_by('id')
 
         if user.is_anonymous or not user.is_authenticated :
@@ -51,7 +57,7 @@ class CategoryViewSet(ModelViewSet):
             elif user.role == 'tutor':
                 queryset = queryset.exclude(Q(status='Requested') | Q(is_active=False))
 
-        
+        cache.set(cache_key, queryset, 60 * 15)
         return queryset
         
 
@@ -71,8 +77,15 @@ class CourseViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        queryset = Course.objects.all().prefetch_related('reviews')
+        cache_key = f'courses_{user.id if user.is_authenticated else "public"}'
+        cached_courses = cache.get(cache_key)
 
+        if cached_courses is not None:
+            print('not hitting', cached_courses)
+            return cached_courses
+        print(' hitting', cached_courses)
+
+        queryset = Course.objects.all().prefetch_related('reviews')
 
         if user.is_anonymous or not user.is_authenticated :
             queryset = queryset.filter(status='Approved', is_active=True)
@@ -98,6 +111,8 @@ class CourseViewSet(ModelViewSet):
         if search_query:
             queryset = queryset.filter(title__icontains=search_query)
 
+        cache.set(cache_key, queryset, 60 * 15)
+
         return queryset
         
     def perform_create(self, serializer):
@@ -109,9 +124,19 @@ class CourseViewSet(ModelViewSet):
         print(self.kwargs)
         slug = self.kwargs.get('slug', None)
         if slug:
-            data = Course.objects.filter(slug=slug).first()
-            print(data)
-        return data
+            cache_key = f'course_detail_{slug}'
+            cached_course = cache.get(cache_key)
+
+            if cached_course is not None:
+                return cached_course
+            
+            course = Course.objects.filter(slug=slug).first()
+            if course:
+                cache.set(cache_key, course, 60 * 15)
+                return course
+            print(course)
+
+        return Response({'error' : 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class ModuleView(APIView):
@@ -129,7 +154,6 @@ class ModuleView(APIView):
 
 
         for i, data in enumerate(modules_data):
-            # print(i, data)
             title = data['title']
             description = data['description']
             duration = data['duration']
@@ -382,8 +406,18 @@ class NotesViewSet(ModelViewSet):
 
     def get_queryset(self):
         print('requst user in notes :',self.request.user)
-        return Note.objects.filter(user=self.request.user)
+        user = self.request.user
+        cache_key = f'notes_{user.id}'
+        cached_notes = cache.get(cache_key)
 
+        if cached_notes is not None:
+            return cached_notes
+        
+        queryset = Note.objects.filter(user=user)
+        cache.set(cache_key, queryset, 60*15)
+
+        return queryset
+    
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

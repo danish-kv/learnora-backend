@@ -9,6 +9,7 @@ from django.utils.timezone import now
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum
 from rest_framework.permissions import AllowAny
+from django.core.cache import cache
 # Create your views here.
 
 
@@ -22,6 +23,12 @@ class ContestViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+
+        cache_key = f"contest_{user.id if user.is_authenticated else 'public'}"
+        cached_contest = cache.get(cache_key)
+        if cached_contest is not None:
+            return cached_contest
+
         queryset = Contest.objects.all().order_by('-id')
 
         if user.is_anonymous or not user.is_authenticated:
@@ -36,6 +43,7 @@ class ContestViewSet(ModelViewSet):
             elif user.role == 'student':
                 queryset = queryset.all()
 
+        cache.set(cache_key, queryset, 60 * 15)
         return queryset
 
 
