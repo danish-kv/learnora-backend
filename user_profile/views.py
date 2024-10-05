@@ -314,7 +314,7 @@ class TutorDashboardView(viewsets.ViewSet):
         recent_contest = Leaderboard.objects.filter(contest__tutor=tutor).order_by('created_at')[:5]
         recent_contest_serializer = LeaderboardSerializer(recent_contest, many=True) 
 
-        monthly_enrollments = ( StudentCourseProgress.objects.annotate(month=TruncMonth('created_at')).values('month').annotate(count=Count('id')).order_by('month'))
+        monthly_enrollments = (StudentCourseProgress.objects.filter(course__tutor=tutor).annotate(month=TruncMonth('created_at')).values('month').annotate(count=Count('id')).order_by('month'))
 
         enrollment_data = [0] * 12
         for entry in monthly_enrollments:

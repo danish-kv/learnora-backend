@@ -95,7 +95,7 @@ class CourseViewSet(ModelViewSet):
         
         elif hasattr(user, 'role'):
             if user.role == 'tutor':
-                queryset = queryset.all()
+                queryset = queryset.filter(tutor__user=user)
             elif user.role == 'student':
                 queryset = queryset.filter( Q(status='Approved', is_active=True, tutor__user__is_active=True))
         

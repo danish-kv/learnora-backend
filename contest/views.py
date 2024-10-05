@@ -39,7 +39,7 @@ class ContestViewSet(ModelViewSet):
 
         elif hasattr(user, 'role'):
             if user.role == 'tutor':
-                queryset = queryset.all()
+                queryset = queryset.filter(tutor__user=user)
             elif user.role == 'student':
                 queryset = queryset.all()
 

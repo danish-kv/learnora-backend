@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from base.custom_pagination_class import CustomMessagePagination
+from rest_framework.permissions import AllowAny
 # Create your views here.
 
 
@@ -23,15 +24,30 @@ class CommunityCreateAPIView(generics.CreateAPIView):
 
 
 
+
 class ListCommunity(viewsets.ReadOnlyModelViewSet):
     queryset = Community.objects.all()
     serializer_class = CommunitySerializer
     lookup_field = 'slug'
-    permission_classes = []
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset= Community.objects.all().order_by('-id')
+
+        if user.is_anonymous or not user.is_authenticated:
+            queryset = queryset.all()
+        elif hasattr(user, 'role'):
+            if user.role == 'tutor':
+                queryset = queryset.filter(tutor__user=user)
+            elif user.role == 'student':
+                queryset = queryset.all()
+
+
+        return queryset
 
 
 class JoinCommunityAPIView(APIView):
-    # permission_classes = []
 
     def post(self, request, slug):
         print('in community views ===')
