@@ -2,79 +2,75 @@ from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, ValidationError
 from ..models import CustomUser
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
-from rest_framework.exceptions import PermissionDenied
-from user_profile.models import Tutor
 from ..signal import generate_otp, send_otp_email
-from rest_framework.exceptions import ValidationError
 from django.utils.timezone import now
 from course.models import Course
 
-
-
-
-
+# Serializer for enrolled courses
 class EnrolledCourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = '__all__'
+        fields = '__all__'  # Serialize all fields of the Course model
 
 
-
-
+# Serializer for the CustomUser model
 class UserSerializers(ModelSerializer):
-    enrolled_courses = serializers.SerializerMethodField(read_only=True)
+    enrolled_courses = serializers.SerializerMethodField(read_only=True)  # Add a field to get enrolled courses
+
     class Meta:
         model = CustomUser
-        fields = [ 'id', 'username', 'first_name', 'last_name', 'last_login', 'email', 'password', 'bio',
-                   'phone', 'dob', 'date_joined', 'role', 'profile', 'is_active', 'enrolled_courses']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = [
+            'id', 'username', 'first_name', 'last_name', 'last_login', 'email',
+            'password', 'bio', 'phone', 'dob', 'date_joined', 'role', 'profile',
+            'is_active', 'enrolled_courses'
+        ]
+        extra_kwargs = {'password': {'write_only': True}}  # Password should only be writable
 
     def create(self, validated_data):
-
+        """Create a new user instance with the validated data."""
         if CustomUser.objects.filter(email=validated_data['email']).exists():
             raise ValidationError({'email': 'A user with this email already exists'})
 
-        password = validated_data.pop('password', None)  
-        
-        user = CustomUser.objects.create_user(**validated_data)
+        password = validated_data.pop('password', None)  # Extract password from validated data
+        user = CustomUser.objects.create_user(**validated_data)  # Create user instance
+
         if password:
-            user.set_password(password)
-        user.save()
-        print('passsword', password)
+            user.set_password(password)  # Set the user's password
+        user.save()  # Save the user to the database
 
         return user
 
     def update(self, instance, validated_data):
+        """Update an existing user instance with the validated data."""
         for key, value in validated_data.items():
             if key == "password":
-                instance.set_password(value)
+                instance.set_password(value)  # Set password if provided
             else:
-                setattr(instance, key, value)
-        instance.save()
+                setattr(instance, key, value)  # Update other fields
+        instance.save()  # Save changes
         return instance
-    
+
     def get_enrolled_courses(self, obj):
-        enroll_course = Course.objects.filter(student_progress__student=obj)
-        return EnrolledCourseSerializer(enroll_course, many=True).data
-        
+        """Get the courses in which the user is enrolled."""
+        enroll_course = Course.objects.filter(student_progress__student=obj)  # Get enrolled courses
+        return EnrolledCourseSerializer(enroll_course, many=True).data  # Serialize and return courses
 
 
-
+# Custom token serializer for JWT authentication
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-
-    email = serializers.EmailField(write_only=True)
-    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    role = serializers.CharField(write_only=True)
+    email = serializers.EmailField(write_only=True)  # Email for authentication
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})  # Password input
+    role = serializers.CharField(write_only=True)  # User role for validation
 
     @classmethod
     def get_token(cls, user: CustomUser):
-        token = super().get_token(user)
-        user.last_login = now()
-        user.save()
+        """Create and return a token for the given user."""
+        token = super().get_token(user)  # Generate a token
+        user.last_login = now()  # Update last login time
+        user.save()  # Save user data
 
+        # Add additional claims based on user role
         if user.is_superuser:
-            print('is a admin')
             token['is_admin'] = True
             token['role'] = 'admin'
         elif user.role == 'tutor':
@@ -91,74 +87,70 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token['is_verified'] = user.is_verified 
             token['role'] = user.role
 
-
         return token
-    
+
     def validate(self, attrs):
-        data = super().validate(attrs)
+        """Validate the user's credentials and role."""
+        data = super().validate(attrs)  # Validate credentials
         user = self.user
         requested_role = attrs.get('role')
 
         if user.role != requested_role:
             raise serializers.ValidationError({
-                'error' : 'Your are not authrized person'
+                'error': 'You are not an authorized person'
             }, code='authorization')
-        
+
         if not user.is_verified:
-            otp = generate_otp()
+            otp = generate_otp()  # Generate OTP for unverified users
             user.otp = otp
-            user.save()
-            send_otp_email(user.email, otp)
-        
+            user.save()  # Save the OTP
+            send_otp_email(user.email, otp)  # Send OTP email
         
         if not user.is_active:
-            print('not acsfgdsdtive')
             raise serializers.ValidationError({
                 'error': 'Your account has been blocked by the admin.'
             }, code='blocked')
 
+        # Update token data
         data.update({'access_token': data.pop('access')})
         data.update({'refresh_token': data.pop('refresh')})
         data.update({'role': user.role})
         data.update({'user': user.username})
 
-
         return data
 
 
-
-
+# Serializer for updating user status
 class UserStatusSerializer(ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['is_active']
+        fields = ['is_active']  # Only the active status field
 
 
-
-
+# Serializer for changing user passwords
 class ChangePasswordSerializer(serializers.ModelSerializer):
-    old_password = serializers.CharField(required=True)
-    new_password = serializers.CharField(required=True)
-    confirm_password = serializers.CharField(required=True)
+    old_password = serializers.CharField(required=True)  # Old password required
+    new_password = serializers.CharField(required=True)  # New password required
+    confirm_password = serializers.CharField(required=True)  # Password confirmation required
 
     class Meta:
         model = CustomUser
         fields = ['old_password', 'new_password', 'confirm_password']
 
-
     def validate(self, attrs):
+        """Validate the old password and confirm the new password."""
         user = self.context['request'].user
 
         if not user.check_password(attrs['old_password']):
-            raise serializers.ValidationError({'old_password' : 'Old password is incorrect'})
+            raise serializers.ValidationError({'old_password': 'Old password is incorrect'})
         
         if attrs['new_password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({'confirm_password' : "New Password do not match"})
+            raise serializers.ValidationError({'confirm_password': "New Password does not match"})
         
         return attrs    
-    
 
     def save(self, **kwargs):
+        """Save the new password for the user."""
         user = self.context['request'].user
-        user.set_password(self.validated_data['new_password'])
-        user.save()
+        user.set_password(self.validated_data['new_password'])  # Set new password
+        user.save()  # Save changes
