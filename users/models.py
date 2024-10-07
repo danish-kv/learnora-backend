@@ -16,9 +16,8 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, username=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        print('extra fields of create superuser',extra_fields)
+        extra_fields.setdefault('is_verified', True)
         username=extra_fields.get('username', 'admin')
-        print(username,email,password)
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
