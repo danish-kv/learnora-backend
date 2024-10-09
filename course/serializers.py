@@ -6,20 +6,24 @@ from user_profile.serializers import TutorSerializer
 from users.api.user_serializers import UserSerializers
 
 
+from rest_framework import serializers
 
-class CategorySerializer(ModelSerializer):
+class CategorySerializer(serializers.ModelSerializer):
+    total_courses = serializers.IntegerField(read_only=True, required=False) 
+    total_enrollment = serializers.IntegerField(read_only=True, required=False) 
+    average_rating = serializers.FloatField(read_only=True, required=False) 
+
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ['id', 'name', 'slug', 'is_active', 'status', 'total_courses', 'total_enrollment', 'average_rating']
 
-    def validate_name(self,value):
+    def validate_name(self, value):
         if not value.strip():
-            print('yes')
             raise serializers.ValidationError('Category name cannot be empty')
-        
+
         if Category.objects.filter(name=value).exists():
             raise serializers.ValidationError('Category already exists')
-        
+
         return value
 
 
@@ -101,7 +105,7 @@ class CourseSimpleSerializer(ModelSerializer):
 
 class ReviewSerializer(ModelSerializer):
     user = UserSerializers(read_only = True)
-    course = CourseSimpleSerializer(read_only=True)
+    course_data = serializers.SerializerMethodField()  
     is_my_review = serializers.SerializerMethodField()
     class Meta:
         model = Review
@@ -114,8 +118,14 @@ class ReviewSerializer(ModelSerializer):
         return False 
     
     def create(self, validated_data):
+        print(validated_data)
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)
+    
+
+    def get_course_data(self, obj):
+        course = obj.course 
+        return CourseSimpleSerializer(course).data if course else None
     
  
 
@@ -165,7 +175,7 @@ class CourseSerializer(ModelSerializer):
     
 
     def update(self, instance, validated_data):
-
+        print('validate data: ==',validated_data)
         new_photo = validated_data.get('thumbnail', None)
         if new_photo and instance.thumbnail:
             instance.thumbnail.delete(save=True)
