@@ -1,140 +1,73 @@
 import json
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.views import APIView
-from rest_framework import generics
-from .models import Tutor, Skill, Education, Experience
-from users.models import CustomUser
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from .serializers import TutorSerializer
-from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
-import re
 from datetime import datetime
-from .models import Tutor
-from base.custom_permissions import IsAdmin, IsStudent, IsTutor
-from django.db import transaction
 from django.core.mail import send_mail
 from django.conf import settings
-from rest_framework import viewsets
-from rest_framework import views
-from .serializers import SkillSerializer, EducationSerializer, ExperienceSerializer, CourseSalesSerializer
-from course.models import Course, StudentCourseProgress, Transaction, Module, Review
+from django.db import transaction
 from django.db.models import Sum, Count
-from course.serializers import TransactionSerializer, ReviewSerializer, StudentCourseProgressSerializer
+from django.db.models.functions import TruncMonth
+from rest_framework import generics, status, viewsets, views
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import Tutor, Skill, Education, Experience
+from users.models import CustomUser
+from .serializers import (
+    TutorSerializer, EducationSerializer,
+    ExperienceSerializer, CourseSalesSerializer
+)
+from base.custom_permissions import IsAdmin, IsStudent, IsTutor
+from course.models import Course, StudentCourseProgress, Transaction, Module, Review
+from course.serializers import (
+    TransactionSerializer, ReviewSerializer, StudentCourseProgressSerializer
+)
 from contest.models import Leaderboard
 from contest.serializers import LeaderboardSerializer
-from django.db.models.functions import TruncMonth
+from .validation import TutorProfileValidator
+
 # Create your views here.
 
 
-
-
 class TutorProfile(APIView):
-    
+    """
+    API view for creating and listing tutor profiles.
+    """
 
     def post(self, request):
-        
-        print('before json')
+        """
+        Create a new tutor profile.
+
+        Args:
+            request (Request): The HTTP request object.
+
+        Returns:
+            Response: The HTTP response object.
+        """
+
         data = request.data.copy()  
 
-        error = {}
+        validator = TutorProfileValidator(data)
+        validation_errors = validator.validate
 
-        if 'first_name' in data:
-            if not data['first_name']:
-                error['First name'] = 'First name is required'
+        if validation_errors:
+            return Response({'error' : validation_errors}, status=status.HTTP_400_BAD_REQUEST)
 
-        if 'last_name' in data:
-            if not data['last_name']:
-                error['Last name'] = 'Last name is required'        
+        # Process JSON fields
+        json_fields = ['education', 'experiences', 'skills']
+        for field in json_fields:
+            if field in data:
+                try:
+                    data[field] = json.loads(data[field][0] if isinstance(data[field], list) else data[field])
+                except json.JSONDecodeError as e:
+                    return Response({'error': f'Invalid JSON in {field}: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            validate_email(data['email'])
-        except ValidationError:
-            return Response({'error' : 'Invalid Email address'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        
-        if 'public_name' in data:
-            if not data['public_name']:
-                error['Public name'] = 'public name is required'
-
-        if 'phone' in data:
-            if not data['phone']:
-                error['Phone'] = 'Phone is required'
-
-        if 'phone' in data and not re.match(r'^\+?\d{10,15}$', data['phone']):
-            if not data['phone']:
-                error['Phone'] = 'Invalid phone number format'
-
-        if 'headline' in data:
-            if not data['headline']:
-                error['Headline'] = 'Headline is required'
-
-        if 'bio' in data:
-            if not data['bio']:
-                error['Bio'] = 'Bio is required'
-
-        if 'profile' in data:
-            if not data['profile']:
-                error['profile'] = 'Profile is required'
-
-        if 'dob' in data:
-            try:
-                dob = datetime.strptime(data['dob'], '%Y-%m-%d')
-
-                if dob > datetime.now():
-                    error['Date of Birth'] = 'Date of Birth cannot be in the future'
-
-            except ValueError:
-                error['Date of Birth'] = 'Invalid date format for DOB'
-
-        if 'cv' in data:
-            cv = data['cv']
-            if not hasattr(cv,'file'):
-                return Response({'error' : 'CV must be valid file'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            if 'education' in data:
-                education_data = json.loads(data['education'])
-                for edu in education_data:
-                    if 'highestQualification' not in edu or not edu['highestQualification']:
-                        error['Education'] = 'Each education entry must have a highest qualification'
-                    if 'institute' not in edu or not edu['institute']:
-                        error['Education'] = 'Each education entry must have a institution'
-                    if 'year' not in edu or not edu['year']:
-                        error['Education'] = 'Each education entry must have a year'
-        except json.JSONDecodeError:
-            return Response({'error' : 'Invalid JSON Format'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # try:
-        #     if 'experiences' in data:
-        #         experiences_data = json.loads(data['experiences'])
-        #         for exp in experiences_data:
-        #             if 'Workplace' not in exp or not exp['Workplace']:
-        #                 error['Workplace'] = 'Each experiences entry must have a company name'
-        #             if 'position' not in exp or not exp['position']:
-        #                 error['Position'] = 'Each experiences entry must have a position'
-        #             if 'startDate' not in exp or not exp['startDate']:
-        #                 error['Start Date'] = 'Each experiences  must have a start year'
-        #             if 'endDate' not in exp or not exp['endDate']:
-        #                 error['End Date'] = 'Each experiences  must have a end year'
-        # except json.JSONDecodeError:
-        #     return Response({'error' : 'Invalid JSON Format'}, status=status.HTTP_400_BAD_REQUEST)
-
-        if error:
-            return Response(data={'error' : error}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            if 'education' in data:
-                data['education'] = json.loads(data['education'][0] if isinstance(data['education'], list) else data['education'])
-            if 'experiences' in data:
-                data['experiences'] = json.loads(data['experiences'][0] if isinstance(data['experiences'], list) else data['experiences'])
             if 'skills' in data and isinstance(data['skills'], list) and len(data['skills']) == 1:
                 data['skills'] = data['skills'][0].split(',')  
         except json.JSONDecodeError as e:
             return Response({'error': f'Invalid JSON: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+        # Update user data
         if 'email' in data:
             try:
                 user = CustomUser.objects.get(email=data['email'])
@@ -143,68 +76,77 @@ class TutorProfile(APIView):
                 return Response(data={'error' : 'User not Found'}, status=status.HTTP_404_NOT_FOUND)
             
             data['userId'] = user.id
-
-            if data['first_name']:
-                user.first_name = data['first_name']
-            if data['last_name']:
-                user.last_name = data['last_name']
-            if data['phone']:
-                user.phone = data['phone']
-            if data['bio']:
-                user.bio = data['bio']
-            if data['dob']:
-                user.dob = data['dob']
-            if data['profile']:
-                user.profile = data['profile']
+            user_fields = ['first_name', 'last_name', 'phone', 'bio', 'dob', 'profile']
+            for field in user_fields:
+                if field in data:
+                    setattr(user, field, data[field])
             user.save()
-            
+
+        # Create tutor profile
         tutor_serializer = TutorSerializer(data=data)
-
         if tutor_serializer.is_valid():
-
             try:
                 with transaction.atomic():
                     tutor = tutor_serializer.save()
-
                     return Response(tutor_serializer.data, status=status.HTTP_201_CREATED)
             except Exception as e:
                 return Response({'error' : str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
         else:
             return Response(tutor_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
     def get(self, request):
+        """
+        List all tutor profile
+
+        Args:
+            request (Request) : The HTTP request object
+
+        Returns:
+            Response: The HTTP response object containing all tutor profile
+        """
         data = Tutor.objects.all().select_related('user')
         serializer = TutorSerializer(data, many=True)
-        
         return Response(data=serializer.data, status=status.HTTP_200_OK)
     
 
-
 class TutorDetails(generics.RetrieveUpdateAPIView):
+    """
+    API view for retrieving and updating tutor details.
+    """
     queryset = Tutor.objects.all()
     serializer_class = TutorSerializer
     permission_classes = [IsAdmin | IsTutor]
 
     def update(self, request, *args, **kwargs):
-        
+        """
+        Update tutor details and send email if status changes.
+
+        Args:
+            request (Request): The HTTP request object.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: The HTTP response object.
+        """
         instance = self.get_object()
-
         old_status = instance.status
-
         response = super().update(request, *args, **kwargs)
-
         new_status = request.data.get('status')
-        print(old_status,new_status,  )
 
         if old_status != new_status:
             self.send_change_status_email(instance, new_status)
         return response
 
-
     def send_change_status_email(self, tutor, new_status):
-        print(tutor, new_status)
+        """
+        Send email to tutor  when their application status change
+        
+        Args:
+            tutor (Tutor): The tutor object
+            new_status (str): The new status of the tutor's application
+        """
         subject = 'Update on Your Application Status'
         if new_status == 'Verified':
             message = 'Congratulations! Your application has been accepted'
@@ -221,107 +163,161 @@ class TutorDetails(generics.RetrieveUpdateAPIView):
     
 
 class MyProfileViewSets(viewsets.ModelViewSet):
+    """
+    Viewset for managing a tutor's own profile  
+    """
     queryset = Tutor.objects.all()
     serializer_class = TutorSerializer
     permission_classes = [IsTutor]
 
     def get_queryset(self):
+        """
+        Get queryset for the current user's tutor profile
+        
+        Returns:
+            Queryset: The filtered queryset for the current user
+        """
         return Tutor.objects.filter(user=self.request.user)
-    
-    def update(self, request, *args, **kwargs):
-        print(request.data)
-        return super().update(request, *args, **kwargs)
-    
-
-
 
 
 class SkillEditView(APIView):
+    """
+    API View for editing tutor skills
+    """
     def patch(self, request,id, *args, **kwargs):
-        print(request.data)
+        """
+        Update tutor skills.
+
+        Args:
+            request (Request): The HTTP request object.
+            id (int): The ID of the tutor.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: The HTTP response object.
+        """
         skills_data = request.data.get('skills', [])
         tutor = request.user.tutor_profile
         for skill in skills_data:
             Skill.objects.filter(tutor=tutor, id=skill['id']).update(skill_name=skill['skill_name'])
-
         return Response({'success': 'Skills updated'})
-
-        
 
 
 class EducationEditView(views.APIView):
+    """
+    API View for editing tutor education 
+    """
     def patch(self, request,id, *args, **kwargs):
-        print(request.data)
+        """
+        Update tutor education.
 
+        Args:
+            request (Request): The HTTP request object.
+            id (int): The ID of the education entry.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: The HTTP response object.
+        """
         try:
             edu = Education.objects.get(id=id)
         except Education.DoesNotExist:
             return Response({'error' : 'Education not found'}, status=status.HTTP_404_NOT_FOUND)
         
         serializer = EducationSerializer(edu, data=request.data, partial=False)
-
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
-
 class ExperienceEditView(views.APIView):
+    """
+    API view for editing tutor experience.
+    """
     def patch(self, request,id, *args, **kwargs):
-        print(request.data)
+        """
+        Update tutor experience.
 
+        Args:
+            request (Request): The HTTP request object.
+            id (int): The ID of the experience entry.
+            *args: Variable length argument list.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            Response: The HTTP response object.
+        """
         try:
             edu = Experience.objects.get(id=id)
         except Experience.DoesNotExist:
             return Response({'error' : 'Education not found'}, status=status.HTTP_404_NOT_FOUND)
         
         serializer = ExperienceSerializer(edu, data=request.data, partial=False)
-
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-
-
 class TutorDashboardView(viewsets.ViewSet):
-
+    """
+    ViewSet for tutor dashboard data.
+    """
     def list(self, request):
+        """
+        Retrieve dashboard data for a tutor.
+
+        Args:
+            request (Request): The HTTP request object.
+
+        Returns:
+            Response: The HTTP response object containing dashboard data.
+        """
         tutor = request.user.tutor_profile
 
+        # Aggregate statistics
         total_course = Course.objects.filter(tutor=tutor).count()
         enrolled_course = StudentCourseProgress.objects.filter(course__tutor=tutor).count()
         total_amount = Transaction.objects.filter(course__tutor=tutor).aggregate(total=Sum('amount'))['total'] or 0
         total_views = Module.objects.filter(course__tutor=tutor).aggregate(total_view_count=Sum('views_count'))['total_view_count'] or 0
 
+        # Course progress statistics
         completed_course = StudentCourseProgress.objects.filter(course__tutor=tutor, progress='Completed').count()
         ongoing_course = StudentCourseProgress.objects.filter(course__tutor=tutor, progress='Ongoing').count()
         not_started_course = StudentCourseProgress.objects.filter(course__tutor=tutor, progress='Not Started').count()      
 
+        # Recent data
         recent_purchase = Transaction.objects.filter(course__tutor=tutor).order_by('-id')[:5]
+        recent_reviews = Review.objects.filter(course__tutor=tutor).order_by('-id')[:5]
+        recent_enrollments = StudentCourseProgress.objects.filter(course__tutor=tutor).order_by('-created_at')[:5]
+        recent_contests = Leaderboard.objects.filter(contest__tutor=tutor).order_by('created_at')[:5]
+
+        # Serialize recent data
         recent_purchase_serializer = TransactionSerializer(recent_purchase, many=True)
-
-        review_data = Review.objects.filter(course__tutor=tutor).order_by('-id')[:5]
-        review_data_serializer = ReviewSerializer(review_data, many=True, context={'request' : request})
-
-        recent_enrollment = StudentCourseProgress.objects.filter(course__tutor=tutor).order_by('-created_at')[:5]
-        recent_enrollment_serializer = StudentCourseProgressSerializer(recent_enrollment, many=True, context={'request': request}) 
+        review_data_serializer = ReviewSerializer(recent_reviews, many=True, context={'request': request})
+        recent_enrollment_serializer = StudentCourseProgressSerializer(recent_enrollments, many=True, context={'request': request})
+        recent_contest_serializer = LeaderboardSerializer(recent_contests, many=True)
 
 
-        recent_contest = Leaderboard.objects.filter(contest__tutor=tutor).order_by('created_at')[:5]
-        recent_contest_serializer = LeaderboardSerializer(recent_contest, many=True) 
-
-        monthly_enrollments = (StudentCourseProgress.objects.filter(course__tutor=tutor).annotate(month=TruncMonth('created_at')).values('month').annotate(count=Count('id')).order_by('month'))
+        # Monthly enrollment data
+        monthly_enrollments = (
+            StudentCourseProgress.objects
+            .filter(course__tutor=tutor)
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
 
         enrollment_data = [0] * 12
         for entry in monthly_enrollments:
             month = entry['month'].month - 1
             enrollment_data[month] = entry['count']
 
-
+        # Prepare response data
         response_data = {
             "stats": {
                 "total_courses": total_course,
@@ -338,21 +334,29 @@ class TutorDashboardView(viewsets.ViewSet):
             "recent_reviews": review_data_serializer.data,
             "recent_enrollments": recent_enrollment_serializer.data,
             "recent_contests": recent_contest_serializer.data,
-            "enrollment_data" : enrollment_data
+            "enrollment_data": enrollment_data
         }
-
 
         return Response(response_data, status=status.HTTP_200_OK)
 
 
 class TutorSalesReport(viewsets.ViewSet):
+    """
+    ViewSet for generating tutor sales reports.
+    """
     def list(self, request):
-        tutor = request.user.tutor_profile
+        """
+        Generate a sales report for a tutor within a specified date range.
 
+        Args:
+            request (Request): The HTTP request object.
+
+        Returns:
+            Response: The HTTP response object containing the sales report data.
+        """
+        tutor = request.user.tutor_profile
         start_date = request.query_params.get('start')
         end_date = request.query_params.get('end')
-
-        print(start_date, end_date)
 
         if start_date and end_date:
             try:
@@ -370,8 +374,6 @@ class TutorSalesReport(viewsets.ViewSet):
                     total_amount=Sum('amount'))
                                 
                 sales_report =  CourseSalesSerializer(sales_report_data, many=True)
-
-                
 
                 return Response({"sales": sales_report.data}, status=status.HTTP_200_OK)
             except ValueError:
