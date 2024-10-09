@@ -45,7 +45,23 @@ class ContestViewSet(ModelViewSet):
 
         cache.set(cache_key, queryset, 60 * 15)
         return queryset
+    
+    def perform_create(self, serializer):
+        serializer.save()
+        self.invalidate_cache()  
 
+    def perform_update(self, serializer):
+        serializer.save()
+        self.invalidate_cache()  
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        self.invalidate_cache()
+        
+    def invalidate_cache(self):
+        user = self.request.user
+        cache_key = f"contest_{user.id if user.is_authenticated else 'public'}"
+        cache.delete(cache_key)
 
 
 

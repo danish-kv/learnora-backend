@@ -41,7 +41,9 @@ class CategoryViewSet(ModelViewSet):
         cached_category = cache.get(cache_key)
 
         if cached_category is not None:
+            print('not hitting')
             return cached_category
+        print(' hitting')
 
         queryset = Category.objects.all().order_by('id')
 
@@ -59,6 +61,26 @@ class CategoryViewSet(ModelViewSet):
 
         cache.set(cache_key, queryset, 60 * 15)
         return queryset
+    
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        self.invalidate_cache()
+        return response
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        self.invalidate_cache()  
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        response = super().destroy(request, *args, **kwargs)
+        self.invalidate_cache()  
+        return response
+
+    def invalidate_cache(self):
+        user = self.request.user
+        cache_key = f'categories_{user.id if user.is_authenticated else "public"}'
+        cache.delete(cache_key)
         
 
 
@@ -76,8 +98,10 @@ class CourseViewSet(ModelViewSet):
         return {'request' : self.request}
 
     def get_queryset(self):
+        
         user = self.request.user
-        cache_key = f'courses_{user.id if user.is_authenticated else "public"}'
+        category = self.request.query_params.get('category', '')
+        cache_key = f'courses_{user.id if user.is_authenticated else "public"}_{category}'
         cached_courses = cache.get(cache_key)
 
         if cached_courses is not None:
@@ -99,9 +123,9 @@ class CourseViewSet(ModelViewSet):
             elif user.role == 'student':
                 queryset = queryset.filter( Q(status='Approved', is_active=True, tutor__user__is_active=True))
         
-        category_query = self.request.query_params.get('category', None)
-        if category_query:
-            queryset = queryset.filter(category__slug=category_query)
+        print('Full Query Params:', self.request.query_params)
+        if category:
+            queryset = queryset.filter(category__slug=category)
 
         request_query = self.request.query_params.get('request_course', None)
         if request_query:
@@ -117,38 +141,39 @@ class CourseViewSet(ModelViewSet):
         
     def perform_create(self, serializer):
         if hasattr(self.request.user, 'tutor_profile'):
-            serializer.save(tutor=self.request.user.tutor_profile)   
+            serializer.save(tutor=self.request.user.tutor_profile)
+        self.invalidate_cache()
 
+    def perform_update(self, serializer):
+        serializer.save()
+        self.invalidate_cache()  
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        self.invalidate_cache()  
+
+    def invalidate_cache(self):
+        user = self.request.user
+        category = self.request.query_params.get('category', '')
+        cache_key = f'courses_{user.id if user.is_authenticated else "public"}_{category}'
+        cache.delete(cache_key)  
 
     def get_object(self):
-        print(self.kwargs)
         slug = self.kwargs.get('slug', None)
         if slug:
-            cache_key = f'course_detail_{slug}'
-            cached_course = cache.get(cache_key)
-
-            if cached_course is not None:
-                return cached_course
-            
             course = Course.objects.filter(slug=slug).first()
             if course:
-                cache.set(cache_key, course, 60 * 15)
                 return course
-            print(course)
 
-        return Response({'error' : 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class ModuleView(APIView):
     def post(self, request, *args, **kwargs):
-        print('requested data',request.data)
         modules_data = json.loads(request.data.get('modules'))
-        print('module data ',modules_data)
         course_id = request.data.get('course')
-        print('module daata', course_id)
         course = Course.objects.get(id=course_id)
 
-        print(course)
         course.status = 'Requested'
         course.save()
 
@@ -405,19 +430,37 @@ class NotesViewSet(ModelViewSet):
     permission_classes = [IsStudent]
 
     def get_queryset(self):
-        print('requst user in notes :',self.request.user)
         user = self.request.user
         cache_key = f'notes_{user.id}'
         cached_notes = cache.get(cache_key)
 
         if cached_notes is not None:
+            print('Cache hit:', cached_notes)
             return cached_notes
         
+        print('Cache miss, fetching from DB')
         queryset = Note.objects.filter(user=user)
-        cache.set(cache_key, queryset, 60*15)
+
+        cache.set(cache_key, list(queryset), 60 * 15)  
 
         return queryset
     
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+        self.invalidate_cache() 
+
+    def perform_update(self, serializer):
+        serializer.save()
+        self.invalidate_cache()
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        self.invalidate_cache()
+
+    def invalidate_cache(self):
+        user = self.request.user
+        cache_key = f'notes_{user.id}'
+        cache.delete(cache_key)  
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
