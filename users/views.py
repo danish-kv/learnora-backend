@@ -235,6 +235,10 @@ class LandingPage(viewsets.ViewSet):
             tutors = Tutor.objects.filter(status = 'Verified', user__is_verified=True, user__is_active=True)
             tutor_data = TutorSerializer(tutors, many=True)
 
+            # Retrieve student profile if not null
+            students = CustomUser.objects.filter(role='student').exclude(profile__isnull=True).exclude(profile__exact='')
+            students_data = UserSerializers(students, many=True)
+
             # Prepare response data
             data = {
                 'total_course_completion': total_course_completion,
@@ -242,7 +246,8 @@ class LandingPage(viewsets.ViewSet):
                 'total_student': total_student,
                 'total_course': total_course,
                 "categories": category_serializer.data,
-                'tutors' : tutor_data.data 
+                'tutors' : tutor_data.data,
+                'students' : students_data.data 
             }
 
             return Response(data, status=status.HTTP_200_OK)
