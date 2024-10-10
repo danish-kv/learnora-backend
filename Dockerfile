@@ -18,4 +18,6 @@ COPY . .
 EXPOSE 8000
 
 # Start Daphne
-CMD ["gunicorn", "-b", "0.0.0.0:8000", "backend.wsgi:application"]
+# CMD ["gunicorn", "-b", "0.0.0.0:8000", "backend.wsgi:application"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+

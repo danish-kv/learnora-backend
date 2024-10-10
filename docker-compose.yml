@@ -1,8 +1,8 @@
-version: '3.9'
 services:
   web:
     build: .
-    command: ["gunicorn", "--bind", ":8000", "backend.wsgi:application"]
+    # command: ["gunicorn", "--bind", ":8000", "backend.wsgi:application"]
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     volumes:
       - .:/app
       - media_volume:/app/media/
@@ -25,6 +25,19 @@ services:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - backend-network
+
+  celery-beat:
+    build: .
+    command: ["celery", "-A", "backend", "beat", "--loglevel=info"]
+    volumes:
+      - .:/app 
+      - .:/app
+    depends_on:
+      - db
+    env_file:
+      - .env
     networks:
       - backend-network
 

@@ -157,7 +157,14 @@ env = environ.Env()
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))  # Reads the .env file from the base directory
 
 DATABASES = {
-    'default': env.db(),  # Reads the database configuration from DATABASE_URL
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("DB_NAME"),
+        "USER": os.environ.get("DB_USER"),
+        "PASSWORD": os.environ.get("DB_PASSWORD"),
+        "HOST": "localhost",  # docker db host name
+        "PORT": "5432",
+    }
 }
 
 
@@ -249,8 +256,10 @@ GOOGLE_CLIENT_SECRET=env('GOOGLE_SECRET')
 SOCIAL_AUTH_PASSWORD=env('SOCIAL_PASSWORD')
 
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_BROKER_URL = 'redis://backend-redis-1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://backend-redis-1:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
