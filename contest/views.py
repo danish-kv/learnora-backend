@@ -58,22 +58,20 @@ class ContestViewSet(ModelViewSet):
         Saves a new contest and invalidates the cache.
         """
         serializer.save()
-        self.invalidate_cache()
+        self.invalidate_all_cache()
 
     def perform_destroy(self, instance):
         """
         Deletes a contest and invalidates the cache.
         """
         instance.delete()
-        self.invalidate_cache()
+        self.invalidate_all_cache()
 
-    def invalidate_cache(self):
+    def invalidate_all_cache(self):
         """
-        Invalidates the contest cache for the current user.
+        Invalidate all cached data.
         """
-        user = self.request.user
-        cache_key = f"contest_{user.id if user.is_authenticated else 'public'}"
-        cache.delete(cache_key)
+        cache.clear()
 
     @action(detail=True, methods=['post'], url_path='participate')
     def participate(self, request, pk=None):

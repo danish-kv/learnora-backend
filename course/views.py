@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from django.conf import settings
 from django.shortcuts import redirect
 from .models import Category, Course, Module, StudentCourseProgress, Review, Transaction, Note
@@ -9,9 +8,7 @@ from rest_framework import status, generics
 from .serializers import CourseSerializer, CategorySerializer, ModuleSerializer, ReviewSerializer, NotesSerializer
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.core.files.uploadedfile import UploadedFile
 from django.shortcuts import get_object_or_404
-from urllib.parse import urlencode
 from datetime import datetime
 from datetime import timedelta
 from django.db import transaction
@@ -22,6 +19,7 @@ from base.custom_permissions import IsAdmin, IsStudent, IsTutor
 from rest_framework.permissions import AllowAny
 from django.db.models import Q
 from django.core.cache import cache
+from rest_framework.exceptions import NotFound
 
 # Set the Stripe API key
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -71,7 +69,7 @@ class CategoryViewSet(ModelViewSet):
         Create a new category and invalidate cache.
         """
         response = super().create(request, *args, **kwargs)
-        self.invalidate_cache()
+        self.invalidate_all_cache()
         return response
 
     def update(self, request, *args, **kwargs):
@@ -79,7 +77,7 @@ class CategoryViewSet(ModelViewSet):
         Update an existing category and invalidate cache.
         """
         response = super().update(request, *args, **kwargs)
-        self.invalidate_cache()
+        self.invalidate_all_cache()
         return response
 
     def destroy(self, request, *args, **kwargs):
@@ -87,16 +85,16 @@ class CategoryViewSet(ModelViewSet):
         Delete a category and invalidate cache.
         """
         response = super().destroy(request, *args, **kwargs)
-        self.invalidate_cache()
+        self.invalidate_all_cache()
         return response
 
-    def invalidate_cache(self):
+    def invalidate_all_cache(self):
         """
-        Invalidate the cached category queryset for the current user.
+        Invalidate all cached data.
         """
-        user = self.request.user
-        cache_key = f'categories_{user.id if user.is_authenticated else "public"}'
-        cache.delete(cache_key)
+        cache.clear()
+
+
 
 
 class CourseViewSet(ModelViewSet):
@@ -130,7 +128,9 @@ class CourseViewSet(ModelViewSet):
         if cached_courses is not None:
             return cached_courses
 
-        queryset = Course.objects.all().prefetch_related('reviews')
+        queryset = Course.objects.all()\
+                .select_related('tutor', 'category')\
+                .prefetch_related('reviews')
 
         # Filter courses based on user authentication and role
         if user.is_anonymous:
@@ -141,7 +141,7 @@ class CourseViewSet(ModelViewSet):
             if user.role == 'tutor':
                 queryset = queryset.filter(tutor__user=user)
             elif user.role == 'student':
-                queryset = queryset.filter(Q(status='Approved', is_active=True, tutor__user__is_active=True))
+                queryset = queryset.filter(Q(status='Approved', is_active=True, tutor__user__is_active=True, category__is_active=True))
 
         # Filter by category if provided
         if category:
@@ -168,42 +168,50 @@ class CourseViewSet(ModelViewSet):
         """
         if hasattr(self.request.user, 'tutor_profile'):
             serializer.save(tutor=self.request.user.tutor_profile)
-        self.invalidate_cache()
+        self.invalidate_all_cache()
 
     def perform_update(self, serializer):
         """
         Override perform_update to save changes to the course and invalidate cache.
         """
         serializer.save()
-        self.invalidate_cache()
+        self.invalidate_all_cache()
 
     def perform_destroy(self, instance):
         """
         Override perform_destroy to delete the course and invalidate cache.
         """
         instance.delete()
-        self.invalidate_cache()
+        self.invalidate_all_cache()
 
-    def invalidate_cache(self):
+    def invalidate_all_cache(self):
         """
-        Invalidate the cached course queryset for the current user and category.
+        Invalidate all cached data.
         """
-        user = self.request.user
-        category = self.request.query_params.get('category', '')
-        cache_key = f'courses_{user.id if user.is_authenticated else "public"}_{category}'
-        cache.delete(cache_key)
+        cache.clear()
 
     def get_object(self):
         """
         Override get_object to retrieve a course by its slug.
         """
+        user = self.request.user
         slug = self.kwargs.get('slug', None)
+
         if slug:
-            course = Course.objects.filter(slug=slug).first()
+            if hasattr(user, 'role') and (user.role == 'tutor' or user.role == 'admin'):
+                # Admin or tutor can retrieve any course
+                course = Course.objects.filter(slug=slug).first()
+            else:
+                # Other users can only retrieve active courses with active categories
+                course = Course.objects.filter(slug=slug, is_active=True, category__is_active=True).first()
+
             if course:
                 return course
+            else:
+                raise NotFound(detail="Course not found")
 
-        return Response({'error': 'Course not found'}, status=status.HTTP_404_NOT_FOUND)
+        # If slug is not provided
+        raise NotFound(detail="Course not found")
 
 
 
@@ -294,11 +302,13 @@ class EditModuleView(generics.RetrieveUpdateDestroyAPIView):
         student = request.user
         module.views_count += 1
         module.save()
+        print('hey========')
 
         course_progress, _ = StudentCourseProgress.objects.get_or_create(student=student, course=module.course)
         course_progress.progress = "Ongoing"
 
         if not course_progress.watched_modules.filter(id=module.id).exists():
+            print('not found watched')
             course_progress.watched_modules.add(module)
             course_progress.watch_time += module.duration
             course_progress.last_accessed_module = module
@@ -507,29 +517,27 @@ class NotesViewSet(ModelViewSet):
         Override perform_create to save the note with the authenticated user and invalidate cache.
         """
         serializer.save(user=self.request.user)
-        self.invalidate_cache() 
+        self.invalidate_all_cache() 
 
     def perform_update(self, serializer):
         """
         Override perform_update to save the note and invalidate cache.
         """
         serializer.save()
-        self.invalidate_cache()
+        self.invalidate_all_cache()
 
     def perform_destroy(self, instance):
         """
         Override perform_destroy to delete the note and invalidate cache.
         """
         instance.delete()
-        self.invalidate_cache()
+        self.invalidate_all_cache()
 
-    def invalidate_cache(self):
+    def invalidate_all_cache(self):
         """
-        Invalidate the cached notes for the authenticated user.
+        Invalidate all cached data.
         """
-        user = self.request.user
-        cache_key = f'notes_{user.id}'
-        cache.delete(cache_key)  
+        cache.clear()
 
     def get_serializer_context(self):
         """
