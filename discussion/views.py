@@ -45,7 +45,7 @@ class DiscussionViewSet(ModelViewSet):
     ViewSet for managing discussions.
     Allows operations like upvoting, downvoting, updating, and deleting discussions.
     """
-    queryset = Discussion.objects.all().prefetch_related('user', 'commented_discussion')
+    queryset = Discussion.objects.all().prefetch_related('user', 'commented_discussion').order_by('-id')
     serializer_class = DiscussionSerializer
     permission_classes = [AllowAny]
 

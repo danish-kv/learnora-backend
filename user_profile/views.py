@@ -42,17 +42,15 @@ class TutorProfile(APIView):
         Returns:
             Response: The HTTP response object.
         """
-
         data = request.data.copy()  
-
         validator = TutorProfileValidator(data)
-        validation_errors = validator.validate
+        validation_errors = validator.validate()
 
         if validation_errors:
-            return Response({'error' : validation_errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': validation_errors}, status=status.HTTP_400_BAD_REQUEST)
 
         # Process JSON fields
-        json_fields = ['education', 'experiences', 'skills']
+        json_fields = ['education', 'experiences']
         for field in json_fields:
             if field in data:
                 try:
