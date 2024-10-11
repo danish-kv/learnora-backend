@@ -1,8 +1,8 @@
 services:
   web:
     build: .
-    # command: ["gunicorn", "--bind", ":8000", "backend.wsgi:application"]
-    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    command: ["gunicorn", "--bind", ":8000", "backend.wsgi:application"]
+    # command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     volumes:
       - .:/app
       - media_volume:/app/media/

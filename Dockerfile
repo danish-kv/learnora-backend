@@ -1,6 +1,10 @@
 # Use an official Python runtime as a parent image
 FROM python:3.12
 
+
+ENV PYTHONDONTWRITEBYCODE=1
+ENV PYTHONUNBUFFERED=1
+
 # Set the working directory in the container
 WORKDIR /app
 
@@ -18,6 +22,6 @@ COPY . .
 EXPOSE 8000
 
 # Start Daphne
-# CMD ["gunicorn", "-b", "0.0.0.0:8000", "backend.wsgi:application"]
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "backend.wsgi:application"]
+# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
