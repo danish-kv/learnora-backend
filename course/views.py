@@ -302,13 +302,11 @@ class EditModuleView(generics.RetrieveUpdateDestroyAPIView):
         student = request.user
         module.views_count += 1
         module.save()
-        print('hey========')
 
         course_progress, _ = StudentCourseProgress.objects.get_or_create(student=student, course=module.course)
         course_progress.progress = "Ongoing"
 
         if not course_progress.watched_modules.filter(id=module.id).exists():
-            print('not found watched')
             course_progress.watched_modules.add(module)
             course_progress.watch_time += module.duration
             course_progress.last_accessed_module = module
@@ -348,8 +346,7 @@ class CoursePurchaseView(APIView):
         
         price = course.price if access_type == 'Lifetime' else course.rental_price
 
-        # image_url = request.build_absolute_uri(course.thumbnail.url) 
-        # print("Image URL ", image_url)
+        image_url = request.build_absolute_uri(course.thumbnail.url) 
 
         try:
             checkout_session = stripe.checkout.Session.create(
@@ -360,7 +357,7 @@ class CoursePurchaseView(APIView):
                             'product_data' : {
                                 'name' : course.title,
                                 'description' : course.description,
-                                # 'images' : [image_url],
+                                'images' : [image_url],
                             },
                             'unit_amount' : int(price * 100)
                             
@@ -501,16 +498,22 @@ class NotesViewSet(ModelViewSet):
         cache_key = f'notes_{user.id}'
         cached_notes = cache.get(cache_key)
 
+
+        print('hhhh')
         if cached_notes is not None:
             return cached_notes
+        print('hhhh===========')
         
         # Filter notes by the authenticated user
         queryset = Note.objects.filter(user=user)
 
         # Cache the filtered queryset for 15 minutes
         cache.set(cache_key, list(queryset), 60 * 15)  
-
         return queryset
+    
+    def get_object(self):
+        print('===========================')
+        return super().get_object()
     
     def perform_create(self, serializer):
         """
@@ -530,6 +533,7 @@ class NotesViewSet(ModelViewSet):
         """
         Override perform_destroy to delete the note and invalidate cache.
         """
+        print('heyy=====================')
         instance.delete()
         self.invalidate_all_cache()
 

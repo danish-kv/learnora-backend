@@ -184,7 +184,7 @@ class CourseSerializer(ModelSerializer):
     """
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())
     tutor = TutorSerializer(read_only=True)
-    modules = ModuleSerializer(many=True, read_only=True)
+    modules = serializers.SerializerMethodField()  
     reviews = ReviewSerializer(many=True, read_only=True)
     progress = serializers.SerializerMethodField(read_only=True)
     average_rating = serializers.SerializerMethodField(read_only=True)
@@ -194,6 +194,13 @@ class CourseSerializer(ModelSerializer):
     class Meta:
         model = Course
         fields = '__all__'
+
+    def get_modules(self, obj):
+        """
+        Retrieves the modules with the context passed to include the request.
+        """
+        modules = Module.objects.filter(course=obj)
+        return ModuleSerializer(modules, many=True, context=self.context).data
 
     def validate_thumbnail(self, value):
         """
@@ -254,17 +261,15 @@ class NotesSerializer(ModelSerializer):
     """
     Serializer for the Note model. Includes module data.
     """
-    module = serializers.SerializerMethodField()  
+    module = ModuleSerializer(read_only=True)  # for full module data for output
+    module_id = serializers.PrimaryKeyRelatedField(
+        queryset=Module.objects.all(), write_only=True, source='module'
+    )  # Accept module ID for input
 
     class Meta:
         model = Note
         fields = "__all__"
 
-    def get_module(self, obj):
-        """
-        Retrieves the module data associated with the note.
-        """
-        return ModuleSerializer(obj.module, context=self.context).data
 
 
 class TransactionSerializer(serializers.ModelSerializer):

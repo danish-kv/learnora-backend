@@ -45,7 +45,7 @@ class TutorProfileValidator:
         required_fields = {
             'first_name': 'First name is required',
             'last_name': 'Last name is required',
-            'public_name': 'Public name is required',
+            'display_name': 'Public name is required',
             'headline': 'Headline is required',
             'bio': 'Bio is required',
             'profile': 'Profile is required'
