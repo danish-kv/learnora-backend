@@ -18,7 +18,8 @@ SECRET_KEY = 'django-insecure-hgs$8s@30@yok&uttm4k48$g84=5eom)cyn@9+_sq7xcjm)%-y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+
 
 
 # Application definition
@@ -162,7 +163,7 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME"),
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST": "localhost",  # docker db host name
+        "HOST": "db",  # docker db host name
         "PORT": "5432",
     }
 }
@@ -214,6 +215,16 @@ AUTH_USER_MODEL = 'users.CustomUser'
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWS_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://13.233.151.229',
+    'http://13.233.151.229',
+    'http://localhost',
+    "https://learnora1.vercel.app"
+    'https://learnora.muhammeddanish.site',
+    'https://www.learnora.muhammeddanish.site'
+]
+
+
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -258,8 +269,8 @@ SOCIAL_AUTH_PASSWORD=env('SOCIAL_PASSWORD')
 
 # CELERY_BROKER_URL = 'redis://localhost:6379/0'
 # CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_BROKER_URL = 'redis://backend-redis-1:6379/0'
-CELERY_RESULT_BACKEND = 'redis://backend-redis-1:6379/0'
+CELERY_BROKER_URL = 'redis://redis:6379/0'
+CELERY_RESULT_BACKEND = 'redis://redis:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -270,19 +281,26 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
 
-SITE_URL = 'http://localhost:9000/'
+SITE_URL = 'https://learnora1.vercel.app/'
 STRIPE_SECRET_KEY=env('STRIPE_SECRET')
 
 
 ASGI_APPLICATION = 'backend.asgi.application'
 
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
-        },
-    },
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {"hosts": [("redis", 6379)]},
+    }
+}
+
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+         'LOCATION': 'redis://redis:6379/0',  
+    }
 }
 
 

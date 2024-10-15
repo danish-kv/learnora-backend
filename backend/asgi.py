@@ -7,7 +7,6 @@ from django.apps import apps
 from django.core.asgi import get_asgi_application
 
 
-django_asgi_app = get_asgi_application()
 print('hey there in asgi')
 
 
@@ -19,7 +18,7 @@ from community.routing import websocket_urlpatterns
 
 application = ProtocolTypeRouter(
     {
-        "http": django_asgi_app,
+        "http": get_asgi_application(),
         "websocket": AuthMiddlewareStack(URLRouter(websocket_urlpatterns)),
     }
 )
