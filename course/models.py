@@ -225,6 +225,7 @@ class Note(BaseModel):
 
     def __str__(self):
         """Returns a string representation of the note."""
+        return f"Note by {self.user} for module {self.module} at timeline {self.timeline or 'N/A'}"
 
 
 class Transaction(BaseModel):
