@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer, ValidationError
+from django.contrib.auth import authenticate
 from ..models import CustomUser
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..signal import generate_otp, send_otp_email
@@ -90,34 +91,62 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        """Validate the user's credentials and role."""
-        data = super().validate(attrs)  # Validate credentials
-        user = self.user
+        email = attrs.get('email')
+        password = attrs.get('password')
         requested_role = attrs.get('role')
 
-        if user.role != requested_role:
+        # First, check if the user exists
+        try:
+            user = CustomUser.objects.get(email=email)
+            print(user)
+        except CustomUser.DoesNotExist:
             raise serializers.ValidationError({
-                'error': 'You are not an authorized person'
-            }, code='authorization')
+                'error': 'No account found with the given email.'
+            }, code='no_account')
 
-        if not user.is_verified:
-            otp = generate_otp()  # Generate OTP for unverified users
-            user.otp = otp
-            user.save()  # Save the OTP
-            send_otp_email(user.email, otp)  # Send OTP email
-        
+        # Now check if the user is active
         if not user.is_active:
             raise serializers.ValidationError({
                 'error': 'Your account has been blocked by the admin.'
             }, code='blocked')
 
-        # Update token data
-        data.update({'access_token': data.pop('access')})
-        data.update({'refresh_token': data.pop('refresh')})
-        data.update({'role': user.role})
-        data.update({'user': user.username})
+        # Authenticate the user
+        user = authenticate(email=email, password=password)
+        if user is None:
+            raise serializers.ValidationError({
+                'error': 'Invalid credentials'
+            }, code='authentication')
+
+        # Check role
+        if user.role != requested_role:
+            raise serializers.ValidationError({
+                'error': 'You are not authorized for this role'
+            }, code='authorization')
+
+        # Check if verified
+        if not user.is_verified:
+            otp = generate_otp()
+            user.otp = otp
+            user.save()
+            send_otp_email(user.email, otp)
+            raise serializers.ValidationError({
+                'error': 'Account not verified. An OTP has been sent to your email.',
+                'require_verification': True
+            }, code='unverified')
+
+        # If the user is valid, active, and authenticated
+        self.user = user
+        data = super().validate(attrs)
+
+        data.update({
+            'access_token': data.pop('access'),
+            'refresh_token': data.pop('refresh'),
+            'role': user.role,
+            'user': user.username
+        })
 
         return data
+
 
 
 # Serializer for updating user status
