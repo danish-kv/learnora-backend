@@ -62,6 +62,7 @@ def login_social_user(email, password, role):
         try:
             token_data = token_serializer.validated_data
             return {
+                'id': user.id,
                 'user': user.username,
                 'email': user.email,
                 'role': user.role,
