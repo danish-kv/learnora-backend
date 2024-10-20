@@ -20,15 +20,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
-
-
-# Application definition
-
 SITE_ID=1
-
-
-
-
 
 INSTALLED_APPS = [
     'daphne',
@@ -62,8 +54,7 @@ INSTALLED_APPS = [
     'discussion',
     'contest',
     'community',
-    'chatbot',
-    
+    'chatbot',  
 ]
 
 SOCIALACCOUNT_PROVIDERS = {
@@ -92,25 +83,6 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 } 
-
-
-
-# REST_FRAMEWORK = {
-#     # 'DEFAULT_PERMISSION_CLASSES': [
-#     #     'rest_framework.permissions.IsAuthenticated',
-#     # ],
-#     # 'DEFAULT_AUTHENTICATION_CLASSES': (
-#     #     'rest_framework_simplejwt.authentication.JWTAuthentication',
-#     # ),
-#     'DEFAULT_THROTTLE_CLASSES': [
-#         'rest_framework.throttling.UserRateThrottle',
-#     ],
-#     'DEFAULT_THROTTLE_RATES': {
-#         'user': '1000/day',  # Example rate, customize as per your need
-#     }
-# }
-
-
 
 
 MIDDLEWARE = [
