@@ -83,7 +83,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         else:        
             token['user'] = user.username
             token['id'] = user.id
-            token['profile'] = user.profile
+            token['profile'] = user.profile.url if user.profile else None
             token['is_active'] = user.is_active 
             token['email'] = user.email
             token['is_verified'] = user.is_verified 
