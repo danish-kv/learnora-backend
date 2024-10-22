@@ -52,8 +52,8 @@ jobs:
       run: |
         echo "$PRIVATE_KEY" >  private_key && chmod 600  private_key
         ssh -o StrictHostKeyChecking=no -i  private_key ${USER}@${HOST} '
-          docker compose pull &&
-          docker compose up -d &&
-          docker image prune -f &&
+          sudo docker compose pull &&
+          sudo docker compose up -d &&
+          sudo docker image prune -f &&
           sudo systemctl restart nginx 
         '
