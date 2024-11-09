@@ -9,6 +9,7 @@ from .views import (
     PaymentSuccess,
     ReviewViewSet,
     NotesViewSet,
+    get_presigned_url
 )
 
 # Create a router for handling viewsets
@@ -27,4 +28,6 @@ urlpatterns = [
     path('modules/<pk>/mark-watched/', EditModuleView.as_view(), name='mark-watched'),
     path('stripe/course-purchase/', CoursePurchaseView.as_view(), name='stripe-payment'),  
     path('payment_success/', PaymentSuccess.as_view(), name='payment-success'),
+    path('get-presigned-url/', get_presigned_url, name='get-presigned-url'),
+
 ]

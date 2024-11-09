@@ -125,7 +125,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             }, code='authorization')
 
         # Check if verified
-        if not user.is_verified:
+        if not user.is_verified and user.role != 'admin':
             otp = generate_otp()
             user.otp = otp
             user.save()

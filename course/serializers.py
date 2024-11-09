@@ -53,34 +53,8 @@ class ModuleSerializer(ModelSerializer):
 
     class Meta:
         model = Module
-        fields = "__all__"
-
-    def validate_video(self, value):
-        """
-        Validates the uploaded video file to ensure it is not 
-        larger than 50 MB and has a valid format.
-        """
-        if value.size > 50 * 1024 * 1024:
-            raise serializers.ValidationError('Video file size should not exceed 50 MB')
-        
-        if not value.name.endswith(('mp4', 'mov', 'avi')):
-            raise serializers.ValidationError('Invalid video type')
-        
-        return value
-    
-
-    def validate_notes(self, value):
-        """
-        Validates the uploaded notes file to ensure it is not 
-        larger than 10 MB and has a valid format.
-        """
-        if value.size > 10 * 1024 * 1024:
-            raise serializers.ValidationError('Notes file size should not be exceed 10MB')
-        
-        if not value.name.endswith(('pdf', 'docx')):
-            raise serializers.ValidationError('Invalid file type for notes')
-        return value
-    
+        fields = "__all__" 
+        read_only_fields = ['video', 'notes']
     def get_student_notes(self, obj):
         """
         Retrieves the notes associated with the student for the module.
@@ -112,17 +86,14 @@ class ModuleSerializer(ModelSerializer):
 
     def update(self, instance, validated_data):
         """
-        Updates the module instance with validated data. 
-        Deletes old video and notes files if new ones are provided.
+        Handle the update of all fields except for video and notes.
         """
-        new_video = validated_data.get('video', None)
-        if new_video and instance.video:
-            instance.video.delete(save=False)
+        # Exclude video and notes, handled in the view
+        print('validate -====',validated_data)
+        validated_data.pop('video', None)
+        validated_data.pop('notes', None)
 
-        new_notes = validated_data.get('notes', None)
-        if new_notes and instance.notes:
-            instance.notes.delete(save=False)
-
+        # Update remaining fields
         for key, value in validated_data.items():
             setattr(instance, key, value)
 

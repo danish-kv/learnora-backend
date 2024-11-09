@@ -20,9 +20,46 @@ from rest_framework.permissions import AllowAny
 from django.db.models import Q
 from django.core.cache import cache
 from rest_framework.exceptions import NotFound
+import boto3
+from rest_framework.decorators import api_view
 
 # Set the Stripe API key
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
+
+
+
+
+@api_view(['GET'])
+def get_presigned_url(request):
+    
+    s3 = boto3.client('s3',
+                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
+    
+    file_type = request.GET.get('file_type') 
+    filename = request.GET.get('filename')
+    
+
+    if file_type == 'video':
+        key = f'module_videos/{filename}'  
+    elif file_type == 'notes':
+        key = f'module_notes/{filename}' 
+    else:
+        return Response({'error': 'Invalid file type'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    presigned_url = s3.generate_presigned_url(
+        ClientMethod='put_object',
+        Params={
+            'Bucket': "react-direct-bucket",
+            'Key': key,
+        },
+        ExpiresIn=3600  
+    )
+    
+    return Response({'presignedUrl': presigned_url, 'key': key})
+
 
 
 class CategoryViewSet(ModelViewSet):
@@ -238,8 +275,8 @@ class ModuleView(APIView):
             title = data['title']
             description = data['description']
             duration = data['duration']
-            video = request.FILES.get(f'video_{i}')
-            notes = request.FILES.get(f'notes_{i}')
+            video = data.get('video') 
+            notes = data.get('notes') 
 
             Module.objects.create(
                 course=course,
@@ -266,11 +303,53 @@ class EditModuleView(generics.RetrieveUpdateDestroyAPIView):
         """
         Handle patch requests for toggling likes or marking a module as watched.
         """
-        if 'toggle-like' in request.path:
-            return self.toggle_like(request, *args, **kwargs)
-        if 'mark-watched' in request.path:
-            return self.mark_watched(request, *args, **kwargs)
+        try:
+            if 'toggle-like' in request.path:
+                return self.toggle_like(request, *args, **kwargs)
+            if 'mark-watched' in request.path:
+                return self.mark_watched(request, *args, **kwargs)
+        except Exception as e:
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         return super().patch(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        """
+        Handle the manual update of the 'video' and 'notes' paths.
+        """
+        instance = self.get_object()
+
+        # Handle video and notes path updates manually
+        video_url = self.request.data.get('video', '')
+        notes_url = self.request.data.get('notes', '')
+
+        # Manually update video and notes
+        if video_url:
+            instance.video = video_url
+        if notes_url:
+            instance.notes = notes_url
+
+
+        # Now let the serializer handle the rest of the fields
+        validated_data = serializer.validated_data
+        validated_data.pop('video', None)  
+        validated_data.pop('notes', None)  
+
+        # Update remaining fields with serializer and save
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+
+        # Save the instance
+        instance.save()
+
+        # manually update the video and notes fields
+        if video_url:
+            instance.video = video_url
+        if notes_url:
+            instance.notes = notes_url
+
+        instance.save()  # Save again to persist video and notes
+
+
 
     def toggle_like(self, request, pk=None):
         """
