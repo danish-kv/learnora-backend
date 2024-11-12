@@ -52,7 +52,7 @@ def get_presigned_url(request):
     presigned_url = s3.generate_presigned_url(
         ClientMethod='put_object',
         Params={
-            'Bucket': "react-direct-bucket",
+            'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
             'Key': key,
         },
         ExpiresIn=3600  
