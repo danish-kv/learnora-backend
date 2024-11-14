@@ -27,39 +27,52 @@ from rest_framework.decorators import api_view
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-
+import time
 
 
 @api_view(['GET'])
 def get_presigned_url(request):
-    
-    s3 = boto3.client('s3',
-                     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY)
-    
-    file_type = request.GET.get('file_type') 
-    filename = request.GET.get('filename')
-    
-
-    if file_type == 'video':
-        key = f'module_videos/{filename}'  
-    elif file_type == 'notes':
-        key = f'module_notes/{filename}' 
-    else:
-        return Response({'error': 'Invalid file type'}, status=status.HTTP_400_BAD_REQUEST)
-    
-    
-    presigned_url = s3.generate_presigned_url(
-        ClientMethod='put_object',
-        Params={
-            'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
-            'Key': key,
-        },
-        ExpiresIn=3600  
-    )
-    
-    return Response({'presignedUrl': presigned_url, 'key': key})
-
+    try:
+        s3_client = boto3.client(
+            's3',
+            region_name='ap-south-1',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        )
+        
+        file_type = request.GET.get('file_type')
+        filename = request.GET.get('filename')
+        content_type = request.GET.get('content_type', 'application/octet-stream')
+        
+        if not all([file_type, filename]):
+            return Response({'error': 'Missing parameters'}, status=400)
+            
+        timestamp = int(time.time())
+        if file_type == 'video':
+            key = f'module_videos/{timestamp}-{filename}'
+        elif file_type == 'notes':
+            key = f'module_notes/{timestamp}-{filename}'
+        else:
+            return Response({'error': 'Invalid file type'}, status=400)
+            
+        url = s3_client.generate_presigned_url(
+            'put_object',
+            Params={
+                'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
+                'Key': key,
+                'ContentType': content_type,
+            },
+            ExpiresIn=3600,
+        )
+        
+        return Response({
+            'presignedUrl': url,
+            'key': key
+        })
+        
+    except Exception as e:
+        print(f"Error generating presigned URL: {str(e)}")
+        return Response({'error': str(e)}, status=500)
 
 
 class CategoryViewSet(ModelViewSet):
