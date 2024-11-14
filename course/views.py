@@ -49,9 +49,9 @@ def get_presigned_url(request):
             
         timestamp = int(time.time())
         if file_type == 'video':
-            key = f'module_videos/{timestamp}-{filename}'
+            key = f'media/module_videos/{timestamp}-{filename}'
         elif file_type == 'notes':
-            key = f'module_notes/{timestamp}-{filename}'
+            key = f'media/module_notes/{timestamp}-{filename}'
         else:
             return Response({'error': 'Invalid file type'}, status=400)
             
