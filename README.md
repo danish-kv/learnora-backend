@@ -1,119 +1,226 @@
-Learnora Backend
+# Learnora Backend
+
 Welcome to the Learnora Backend repository! Learnora is an innovative e-learning platform designed for students, tutors, and admins, providing an interactive, collaborative, and engaging learning experience.
 
-Overview
+## Overview
+
 Learnora is a comprehensive platform offering features such as course creation, community-based learning, contests, and more. It supports three main user roles:
 
-Student: Can purchase or rent courses, take notes, participate in contests, and join discussions.
-Tutor: Can create courses, manage communities, and participate in video chats and group discussions.
-Admin: Oversees user management, course approval, and category management.
-Key Features
-Authentication: Google OAuth and JWT-based authentication for secure access.
-Course Management: Tutors can create courses, and students can purchase or rent courses based on modules or chapters.
-Note-taking and Review: Students can take notes during lessons and review them later.
-Contest Section: A gamified contest system with MCQ questions created by tutors, designed for student engagement. Time-limited challenges are supported.
-Discussion Forum: A public forum where students can ask questions, share achievements, and interact with upvotes, downvotes, comments, and nested replies.
-Community Section: Group chat and video call features for live tutoring sessions and collaborative study, powered by ZegoCloud.
-Chatbot: Integrated AI-powered chatbot using Gemini AI for resolving doubts.
-Profile Management: Students can manage their profiles, track achievements, and monitor learning progress.
-Admin Features
-User Management: Admins can manage both students and tutors.
-Course Approval: Admins review and approve courses created by tutors.
-Category Management: Manage and categorize courses for better discovery.
-Tutor Features
-Course Management: Tutors can manage their courses and request new categories.
-Community Management: Tutors can manage community groups for live discussions.
-Profile Management: Tutors can manage and update their profiles.
-Technologies Used
-The Learnora backend is built with a modern tech stack to ensure performance, scalability, and security:
+- **Student**: Can purchase or rent courses, take notes, participate in contests, and join discussions.
+- **Tutor**: Can create courses, manage communities, and participate in video chats and group discussions.
+- **Admin**: Oversees user management, course approval, and category management.
 
-Django: Backend framework.
-Django REST Framework (DRF): For building robust APIs.
-Django Channels: Enables real-time communication features.
-PostgreSQL: Relational database management system.
-Redis: Used for caching.
-Celery & Celery Beat: For handling background tasks, including contest scheduling and other periodic tasks.
-Amazon S3: Used for media and static file storage.
-JWT (JSON Web Token): For user authentication and authorization.
-Google OAuth: Social authentication for user login.
-ZegoCloud: For real-time video calls and group chat features.
-Gemini AI: AI-powered chatbot for student assistance and doubt resolution.
-Installation & Setup
-To get started with the Learnora backend, follow these steps:
+## Key Features
 
-Prerequisites
-Python 3.x
-PostgreSQL
-Redis
-AWS S3 (for media and static files)
-Django
-Celery
-Step 1: Clone the Repository
-bash
-Copy code
-git clone https://github.com/yourusername/learnora-backend.git
-cd learnora-backend
-Step 2: Create and Activate a Virtual Environment
-bash
-Copy code
-python -m venv venv
-source venv/bin/activate  # On Windows, use venv\Scripts\activate
-Step 3: Install Dependencies
-bash
-Copy code
-pip install -r requirements.txt
-Step 4: Configure Environment Variables
-Set up your environment variables in a .env file, including:
+### Authentication
+- Google OAuth integration
+- JWT-based authentication for secure access
 
-Database credentials for PostgreSQL
-Redis URL
-AWS S3 credentials
-Google OAuth credentials
-JWT secret keys
-Step 5: Run Migrations
-bash
-Copy code
-python manage.py migrate
-Step 6: Start Celery Worker and Beat
-To manage scheduled tasks, such as contest scheduling, start the Celery worker and Celery beat:
+### Course Management
+- Tutors can create and manage courses
+- Students can purchase or rent courses based on modules/chapters
+- Structured learning paths with module-based organization
 
-bash
-Copy code
-celery -A learnora worker --loglevel=info
-celery -A learnora beat --loglevel=info
-Step 7: Run the Server
-bash
-Copy code
-python manage.py runserver
-Features Breakdown
-Course Management
-Tutors can create and manage courses.
-Students can browse, purchase, rent, and watch courses.
-Courses are organized by modules and chapters, offering a structured learning path.
-Contests & Gamification
-Tutors create MCQ-based contests.
-Students participate in time-limited contests for gamified learning.
-Discussion Forum
-Students can ask questions, post achievements, and engage with the community through upvotes, downvotes, comments, and replies.
-Community Section
-Group chat and live video calls for enhanced tutor-student and student-student interaction.
-APIs
-Learnora provides a comprehensive set of APIs for all major functionalities, including:
+### Learning Tools
+- Note-taking system during lessons
+- Review system for course content
+- Contest section with MCQ-based challenges
+- Time-limited contests for gamified learning
 
-User Authentication: Google OAuth, JWT token generation, and verification.
-Course Management: CRUD operations for courses, chapters, and modules.
-Community & Chat: Real-time chat and video calls.
-Contests: Creating, joining, and managing contests.
-Forum & Discussions: Post, comment, reply, upvote, and downvote features.
-For detailed API documentation, refer to the /docs endpoint after running the project.
+### Community Features
+- Public discussion forum with Q&A
+- Achievement sharing
+- Upvotes, downvotes, comments, and nested replies
+- Group chat and video calls powered by ZegoCloud
+- AI-powered chatbot using Gemini AI for doubt resolution
 
-Contributing
-We welcome contributions to Learnora! Please read our CONTRIBUTING.md file for guidelines on how to get involved.
+### User Management
+- Profile management for students and tutors
+- Progress tracking and achievement monitoring
+- Admin controls for user oversight
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Payment Integration
 
-Contact
-For more information or inquiries, please contact:
+ - Secure payment processing with Stripe
+ - Course purchase and rental options
 
-Project Owner: Danish
+
+## Technologies Used
+
+- **Backend Framework**: Django
+- **API Framework**: Django REST Framework (DRF)
+- **Real-time Communication**: Django Channels
+- **Database**: PostgreSQL
+- **Caching**: Redis
+- **Task Management**: Celery & Celery Beat
+- **Storage**: Amazon S3
+- **Authentication**: JWT & Google OAuth
+- **Payment Integration**: STRIPE
+- **Video Chat**: ZegoCloud
+- **AI Integration**: Gemini AI
+- **Containerization**: Docker & Docker Compose
+
+## Installation & Setup
+
+### Using Docker (Recommended)
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/danish-kv/learnora-backend
+   cd learnora-backend
+   ```
+
+2. **Configure Environment Variables**
+   ```bash
+   cp .env.example .env
+   ```
+   Update the `.env` file with your configuration:
+   ```env
+
+   # Database
+   DB_NAME=learnora_db
+   DB_USER=postgres
+   DB_PASSWORD=your_password
+   DB_HOST=db
+   DB_PORT=5432
+
+   # Redis
+   REDIS_URL=redis://redis:6379/0
+
+   # AWS
+   EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USE_TLS=True
+   EMAIL_HOST_USER=your_email@gmail.com
+   EMAIL_HOST_PASSWORD=your_app_password
+   DEFAULT_FROM_EMAIL=your_email@gmail.com
+
+   # AWS
+   AWS_ACCESS_KEY_ID=your_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   AWS_STORAGE_BUCKET_NAME=your_bucket_name
+
+   # Google OAuth
+   GOOGLE_OAUTH_CLIENT_ID=your_client_id
+   GOOGLE_OAUTH_CLIENT_SECRET=your_client_secret
+
+   STRIPE_SECRET=your_stripe_secret
+   # Gemini AI
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
+
+3. **Build and Run with Docker Compose**
+   ```bash
+   # Build the images
+   docker-compose build
+
+   # Start the services
+   docker-compose up -d
+
+   # Run migrations
+   docker-compose exec web python manage.py migrate
+
+   # Create superuser (optional)
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+
+### Manual Setup (Alternative)
+
+1. **Prerequisites**
+   - Python 3.x
+   - PostgreSQL
+   - Redis
+   - AWS S3 account
+   - Django
+   - Celery
+
+2. **Create and Activate Virtual Environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure Environment Variables**
+   Follow the same environment variable setup as in the Docker section.
+
+5. **Run Migrations**
+   ```bash
+   python manage.py migrate
+   ```
+
+6. **Start Celery Worker and Beat**
+   ```bash
+   celery -A learnora worker --loglevel=info
+   celery -A learnora beat --loglevel=info
+   ```
+
+7. **Run the Server**
+   ```bash
+   python manage.py runserver
+   ```
+
+## Docker Configuration
+
+The project includes several Docker containers:
+
+- **web**: Django application
+- **db**: PostgreSQL database
+- **redis**: Redis cache
+- **celery**: Celery worker
+- **celery-beat**: Celery beat scheduler
+
+### Docker Commands
+
+```bash
+# Build the images
+docker-compose build
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Remove all containers and volumes
+docker-compose down -v
+
+# Execute commands in containers
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py createsuperuser
+docker-compose exec db psql -U postgres
+```
+
+
+## Features Breakdown
+
+### Course Management
+- Course creation and management for tutors
+- Browse, purchase, and rental options for students
+- Module and chapter-based course organization
+
+### Contests & Gamification
+- MCQ-based contest creation
+- Time-limited challenges
+- Student participation tracking
+
+### Discussion Forum
+- Question posting
+- Achievement sharing
+- Community engagement through voting system
+- Nested comments and replies
+
+### Community Section
+- Real-time group chat
+- Live video calls
+- Interactive tutoring sessions
+
