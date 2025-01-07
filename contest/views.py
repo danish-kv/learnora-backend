@@ -198,6 +198,6 @@ def global_leaderboard(request):
     """
     leaderboard = Leaderboard.objects.values('user__username').annotate(
         total_score = Sum('score')
-    ).order_by('-total_score')[:10]
+    ).order_by('-total_score')[:5]
 
     return Response(leaderboard)
